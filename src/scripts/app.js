@@ -8,7 +8,7 @@ function init() {
 function drawMap() {
   const map = new mapboxgl.Map({
     container: 'map',
-    style: constants.MAP_INIT_STYLE,
+    style: constants.MAP_STYLE,
     center: [constants.MAP_INIT_LON, constants.MAP_INIT_LAT],
     zoom: constants.MAP_INIT_ZOOM,
   });
