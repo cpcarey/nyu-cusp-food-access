@@ -1,10 +1,10 @@
-import * as constants from './constants.js';
+import * as constants from 'constants.js';
 import React, {useRef, useEffect, useState} from 'react';
 import mapboxgl from '!mapbox-gl'; // eslint-disable-line import/no-webpack-loader-syntax
 import {tokens} from 'private-tokens';
 import csvParse from 'csv-parse/lib/sync';
-import csvDataUrl from './data/20210301_supermarkets.csv';
-import {NetworkAnalysis} from './analysis/NetworkAnalysis.js';
+import csvDataUrl from 'data/20210301_supermarkets.csv';
+import {NetworkAnalysis} from 'analysis/NetworkAnalysis.js';
 
 mapboxgl.accessToken = tokens.mapbox;
 

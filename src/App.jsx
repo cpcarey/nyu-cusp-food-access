@@ -1,5 +1,5 @@
 import React from 'react';
-import {DataMap} from './DataMap.jsx';
+import {DataMap} from 'DataMap.jsx';
 
 import './App.css';
 
