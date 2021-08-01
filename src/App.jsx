@@ -5,11 +5,10 @@ import './App.css';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        NYU CUSP Capstone
-      </header>
+    <div className="app">
+      <div className="panel panel-left"></div>
       <DataMap />
+      <div className="panel panel-right"></div>
     </div>
   );
 }

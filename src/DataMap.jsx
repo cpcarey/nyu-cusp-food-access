@@ -7,6 +7,8 @@ import csvDataUrl from 'data/20210301_supermarkets.csv';
 import {NetworkAnalysis} from 'analysis/NetworkAnalysis.js';
 import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
 
+import './DataMap.css';
+
 mapboxgl.accessToken = tokens.mapbox;
 
 export function DataMap() {
@@ -59,6 +61,8 @@ export function DataMap() {
       });
 
       map.on('load', () => {
+        map.resize();
+
         poiCbgAnalysis.applyToMap(map);
         homeCbgAnalysis.applyToMap(map);
       });
@@ -66,7 +70,7 @@ export function DataMap() {
   }, [lat, lon, zoom]);
 
   return (
-    <div>
+    <div className="data-map">
       <div ref={mapContainerRef} className="map-container" />
     </div>
   );
