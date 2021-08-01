@@ -1,14 +1,15 @@
 import React from 'react';
 import {DataMap} from 'DataMap.jsx';
+import {Panel} from 'Panel.jsx';
 
 import './App.css';
 
 function App() {
   return (
     <div className="app">
-      <div className="panel panel-left"></div>
+      <Panel side={0} />
       <DataMap />
-      <div className="panel panel-right"></div>
+      <Panel side={1} />
     </div>
   );
 }
