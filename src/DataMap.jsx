@@ -5,6 +5,7 @@ import {tokens} from 'private-tokens';
 import csvParse from 'csv-parse/lib/sync';
 import csvDataUrl from 'data/20210301_supermarkets.csv';
 import {NetworkAnalysis} from 'analysis/NetworkAnalysis.js';
+import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
 
 mapboxgl.accessToken = tokens.mapbox;
 
@@ -32,6 +33,7 @@ export function DataMap() {
         });
 
       const networkAnalysis = new NetworkAnalysis(cbgIds, csvMap);
+      const visitChoroplethAnalysis = new VisitChoroplethAnalysis(cbgIds, csvMap);
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -41,7 +43,7 @@ export function DataMap() {
       });
 
       map.on('load', () => {
-        networkAnalysis.applyToMap(map);
+        visitChoroplethAnalysis.applyToMap(map);
       });
     })();
   }, [lat, lon, zoom]);

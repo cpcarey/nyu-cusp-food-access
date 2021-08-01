@@ -45,7 +45,8 @@ export class NetworkAnalysis {
         'line-opacity': ['get', 'opacity'],
         'line-width': ['get', 'width'],
       },
-    });
+    },
+    getFirstSymbolMapLayerId(map));
   }
 
   /**
@@ -58,7 +59,7 @@ export class NetworkAnalysis {
    * @private
    */
   convertCoordVisitToLineFeature_(cbgCoord, coordVisit) {
-    const ratio = Math.min(coordVisit.value / 30, 1);
+    const ratio = Math.min(Math.max(coordVisit.value - 4, 0) / 20, 1);
     return {
       type: 'Feature',
       geometry: {
@@ -128,4 +129,13 @@ function getCbgToCoordMap() {
       feature.geometry.coordinates,
     ];
   }));
+}
+
+function getFirstSymbolMapLayerId(map) {
+  for (const layer of map.getStyle().layers) {
+    if (layer.type === 'symbol') {
+      return layer.id;
+    }
+  }
+  return null;
 }
