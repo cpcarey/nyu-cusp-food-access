@@ -6,15 +6,17 @@ export class VisitChoroplethAnalysis {
    * @param {!Map<string, !Array<number>} csvMap Map of CBG ID to array of
    *   visits per CBG from adjacency matrix CSV.
    */
-  constructor(cbgIds, csvMap) {
+  constructor(cbgIds, csvMap, threshold=100, color='#b654f8', id='cbg1') {
     this.cbgIds = cbgIds;
     this.csvMap = csvMap;
+
+    this.color = color;
+    this.id = id;
+    this.threshold = threshold;
 
     this.cbgToPolygonsMap = getCbgToPolygonsMap();
     this.cbgToVisitsMap = this.getCbgToVisitsMap_();
     this.cbgToFeatureMap = this.getCbgToFeatureMap_();
-
-    console.log(this.cbgToVisitsMap);
   }
 
   /**
@@ -22,7 +24,7 @@ export class VisitChoroplethAnalysis {
    * @param {!mapboxgl.Map} map
    */
   applyToMap(map) {
-    map.addSource('cbgPolygons', {
+    map.addSource(this.id, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
@@ -31,14 +33,14 @@ export class VisitChoroplethAnalysis {
     });
 
     map.addLayer({
-      id: 'cbgPolygons',
+      id: this.id,
       type: 'fill',
-      source: 'cbgPolygons',
+      source: this.id,
       layout: {
         visibility: 'visible',
       },
       paint: {
-        'fill-color': '#b654f8',
+        'fill-color': this.color,
         'fill-opacity': ['get', 'opacity'],
       },
     },
@@ -46,7 +48,7 @@ export class VisitChoroplethAnalysis {
   }
 
   convertCoordVisitToMultiPolygonFeature_(cbgId) {
-    const ratio = Math.min((this.cbgToVisitsMap.get(cbgId) || 0) / 100, 1);
+    const ratio = Math.min((this.cbgToVisitsMap.get(cbgId) || 0) / this.threshold, 1);
     return {
       type: 'Feature',
       geometry: {
@@ -54,7 +56,7 @@ export class VisitChoroplethAnalysis {
         coordinates: this.cbgToPolygonsMap.get(cbgId),
       },
       properties: {
-        'opacity': ratio * 0.8,
+        'opacity': ratio * 0.4,
       },
     };
   }

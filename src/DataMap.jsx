@@ -17,23 +17,39 @@ export function DataMap() {
 
   useEffect(() => {
     (async function() {
-      const csvMap = new Map();
+      const csvPoiMap = new Map();
+      const csvHomeMap = new Map();
       let cbgIds = [];
 
       await fetch(csvDataUrl)
         .then((data) => data.text())
         .then((text) => {
           const csvData = csvParse(text);
-          cbgIds = csvData[0].slice(1);
+          const columnCbgIds = csvData[0].slice(1);
+          const rowCbgIds = csvData.slice(1).map((row) => row[0]);
+          const columnCbgIdSet = new Set(columnCbgIds);
+          cbgIds = [
+            ...columnCbgIds,
+            rowCbgIds.filter((id) => !columnCbgIdSet.has(id))
+          ];
+
           for (let i = 1; i < csvData.length; i++) {
-            csvMap.set(
+            csvPoiMap.set(
                 csvData[i][0],
                 csvData[i].slice(1).map((cell) => parseInt(cell)));
           }
+
+          for (let i = 1; i < csvData[0].length; i++) {
+            csvHomeMap.set(
+                csvData[0][i],
+                csvData.slice(1).map((row) => parseInt(row[i])));
+          }
         });
 
-      const networkAnalysis = new NetworkAnalysis(cbgIds, csvMap);
-      const visitChoroplethAnalysis = new VisitChoroplethAnalysis(cbgIds, csvMap);
+      const poiCbgAnalysis =
+          new VisitChoroplethAnalysis(cbgIds, csvPoiMap, 100);
+      const homeCbgAnalysis =
+          new VisitChoroplethAnalysis(cbgIds, csvHomeMap, 50, '#f8d754', 'cbg2');
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -43,7 +59,8 @@ export function DataMap() {
       });
 
       map.on('load', () => {
-        visitChoroplethAnalysis.applyToMap(map);
+        poiCbgAnalysis.applyToMap(map);
+        homeCbgAnalysis.applyToMap(map);
       });
     })();
   }, [lat, lon, zoom]);
