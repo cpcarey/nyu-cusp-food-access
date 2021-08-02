@@ -1,37 +1,23 @@
 import cbgData from 'data/nyc_cbgs.json';
+import {Analysis} from 'analysis/Analysis';
+import * as util from 'analysis/util';
 
-export class VisitChoroplethAnalysis {
+export class VisitChoroplethAnalysis extends Analysis {
   /**
-   * @param {!Array<string>} cbgIds
-   * @param {!Map<string, !Array<number>} csvMap Map of CBG ID to array of
-   *   visits per CBG from adjacency matrix CSV.
+   * @param {string} Choropleth color
+   * @oaram {string} Analysis ID to use within Mapbox
+   * @override
    */
   constructor(cbgIds, csvMap, threshold=100, color='#b654f8', id='cbg1') {
-    this.cbgIds = cbgIds;
-    this.csvMap = csvMap;
+    super(cbgIds, csvMap);
 
     this.color = color;
-    this.id = id;
     this.threshold = threshold;
+    this.id = id;
 
-    this.cbgToPolygonsMap = getCbgToPolygonsMap();
+    this.cbgToPolygonsMap = util.getCbgToCoordsMap(cbgData);
     this.cbgToVisitsMap = this.getCbgToVisitsMap_();
     this.cbgToFeatureMap = this.getCbgToFeatureMap_();
-
-    this.applied = false;
-    this.map = null;
-  }
-
-  hide() {
-    if (!this.map) {
-      return;
-    }
-
-    this.map.setLayoutProperty(this.id, 'visibility', 'none');
-  }
-
-  show() {
-    this.map.setLayoutProperty(this.id, 'visibility', 'visible');
   }
 
   /**
@@ -39,7 +25,7 @@ export class VisitChoroplethAnalysis {
    * @param {!mapboxgl.Map} map
    */
   applyToMap(map) {
-    if (this.applied) {
+    if (this.map) {
       return;
     }
 
@@ -63,10 +49,9 @@ export class VisitChoroplethAnalysis {
         'fill-opacity': ['get', 'opacity'],
       },
     },
-    getFirstSymbolMapLayerId(map));
+    util.getFirstSymbolMapLayerId(map));
 
-    this.applied = true;
-    this.map = map;
+    super.applyToMap(map);
   }
 
   convertCoordVisitToMultiPolygonFeature_(cbgId) {
@@ -103,26 +88,4 @@ export class VisitChoroplethAnalysis {
     }
     return cbgToCoordVisitsMap;
   }
-}
-
-/**
- * Returns a map of CBG ID to its corresponding centroid coordinate [lon, lat].
- * @return {!Map<string, [number, number]>}
- */
-function getCbgToPolygonsMap() {
-  return new Map(cbgData.features.map((feature) => {
-    return [
-      feature.properties['CensusBlockGroup'],
-      feature.geometry.coordinates,
-    ];
-  }));
-}
-
-function getFirstSymbolMapLayerId(map) {
-  for (const layer of map.getStyle().layers) {
-    if (layer.type === 'symbol') {
-      return layer.id;
-    }
-  }
-  return null;
 }
