@@ -5,25 +5,23 @@ import {Panel} from 'Panel.jsx';
 import './App.css';
 
 function App() {
-  const [homeCbg, setHomeCbg] = useState(false);
-  const [poiCbg, setPoiCbg] = useState(true);
-  const [tripNetwork, setTripNetwork] = useState(false);
+  const [configState, setConfigState] = useState({
+    layers: {
+      homeCbg: false,
+      poiCbg: true,
+      tripNetwork: false,
+    },
+  });
 
   return (
     <div className="app">
       <Panel
+        configState={configState}
         side={0}
-        homeCbg={homeCbg}
-        poiCbg={poiCbg}
-        setHomeCbg={setHomeCbg}
-        setPoiCbg={setPoiCbg}
-        setTripNetwork={setTripNetwork}
-        tripNetwork={tripNetwork}
+        setConfigState={setConfigState}
         />
       <DataMap
-        homeCbg={homeCbg}
-        poiCbg={poiCbg}
-        tripNetwork={tripNetwork}
+        configState={configState}
         />
       <Panel side={1} />
     </div>

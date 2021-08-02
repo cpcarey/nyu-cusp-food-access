@@ -11,7 +11,7 @@ import './DataMap.css';
 
 mapboxgl.accessToken = tokens.mapbox;
 
-export function DataMap({homeCbg, poiCbg, tripNetwork}) {
+export function DataMap({configState}) {
   const mapContainerRef = useRef(null);
   const [homeCbgAnalysis, setHomeCbgAnalysis] = useState(null);
   const [lat] = useState(constants.INIT_LAT);
@@ -77,27 +77,27 @@ export function DataMap({homeCbg, poiCbg, tripNetwork}) {
       return;
     }
 
-    if (poiCbg) {
+    if (configState.layers.poiCbg) {
       poiCbgAnalysis.applyToMap(map);
       poiCbgAnalysis.show();
     } else {
       poiCbgAnalysis.hide();
     }
 
-    if (homeCbg) {
+    if (configState.layers.homeCbg) {
       homeCbgAnalysis.applyToMap(map);
       homeCbgAnalysis.show();
     } else {
       homeCbgAnalysis.hide();
     }
 
-    if (tripNetwork) {
+    if (configState.layers.tripNetwork) {
       networkAnalysis.applyToMap(map);
       networkAnalysis.show();
     } else {
       networkAnalysis.hide();
     }
-  }, [homeCbg, poiCbg, map, tripNetwork]);
+  }, [configState, map]);
 
   return (
     <div className="data-map">

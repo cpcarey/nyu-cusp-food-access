@@ -2,9 +2,7 @@ import {useState} from 'react';
 
 import './Panel.css';
 
-export function Panel({
-  side, homeCbg, poiCbg, setHomeCbg, setPoiCbg, setTripNetwork, tripNetwork,
-}) {
+export function Panel({configState, setConfigState, side}) {
   const [expanded, setExpanded] = useState(false);
 
   const classNamePanel = [
@@ -14,6 +12,35 @@ export function Panel({
   ].filter((className) => className.length).join(' ');
   const classNameIcon = side ? 'far fa-chart-bar' : 'fas fa-cog';
 
+  function handleLayerHomeCbgChange(configState) {
+    setConfigState({
+      ...configState,
+      layers: {
+        ...configState.layers,
+        homeCbg: !configState.layers.homeCbg,
+      },
+    });
+  }
+
+  function handleLayerPoiCbgChange(configState) {
+    setConfigState({
+      ...configState,
+      layers: {
+        ...configState.layers,
+        poiCbg: !configState.layers.poiCbg,
+      },
+    });
+  }
+
+  function handleLayerTripNetworkChange(configState) {
+    setConfigState({
+      ...configState,
+      layers: {
+        ...configState.layers,
+        tripNetwork: !configState.layers.tripNetwork,
+      },
+    });
+  }
 
   let controls;
   // TODO: Move checkbox to its own component.
@@ -23,24 +50,24 @@ export function Panel({
           <div className="panel-control">
             <div>POI CBGs</div>
             <input
-              checked={poiCbg}
-              onChange={() => setPoiCbg(!poiCbg)}
+              checked={configState.layers.poiCbg}
+              onChange={() => handleLayerPoiCbgChange(configState)}
               type="checkbox"
               />
           </div>
           <div className="panel-control">
             <div>Home CBGs</div>
             <input
-              checked={homeCbg}
-              onChange={() => setHomeCbg(!homeCbg)}
+              checked={configState.layers.homeCbg}
+              onChange={() => handleLayerHomeCbgChange(configState)}
               type="checkbox"
               />
           </div>
           <div className="panel-control">
             <div>Trip Network</div>
             <input
-              checked={tripNetwork}
-              onChange={() => setTripNetwork(!tripNetwork)}
+              checked={configState.layers.tripNetwork}
+              onChange={() => handleLayerTripNetworkChange(configState)}
               type="checkbox"
               />
           </div>
