@@ -6,6 +6,9 @@ import App from 'App.jsx';
 
 ReactDOM.render(
   <React.StrictMode>
+    <header className="app-header">
+      NYU CUSP Capstone <i className='fas fa-bar-chart'></i>
+    </header>
     <App />
   </React.StrictMode>,
   document.getElementById('root')

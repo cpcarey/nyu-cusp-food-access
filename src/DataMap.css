@@ -1,0 +1,14 @@
+.data-map {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.map-container {
+  margin: 16px;
+  position: relative;
+  height: calc(100% - 56px);
+  width: calc(100% - 32px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+}
+

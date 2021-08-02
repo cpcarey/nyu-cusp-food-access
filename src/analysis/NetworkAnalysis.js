@@ -1,30 +1,33 @@
 import cbgData from 'data/nyc_cbg_centroids.json';
+import {Analysis} from 'analysis/Analysis';
+import * as util from 'analysis/util';
 
 /**
  * Draws the network of POI CBGs and home visitor CBGs weighted by number of
  * visits.
  */
-export class NetworkAnalysis {
-  /**
-   * @param {!Array<string>} cbgIds
-   * @param {!Map<string, !Array<number>} csvMap Map of CBG ID to array of
-   *   visits per CBG from adjacency matrix CSV.
-   */
+export class NetworkAnalysis extends Analysis {
+  /** @override */
   constructor(cbgIds, csvMap) {
-    this.cbgIds = cbgIds;
-    this.csvMap = csvMap;
+    super(cbgIds, csvMap)
 
-    this.cbgCoordMap = getCbgToCoordMap();
+    this.id = 'cbgNetwork';
+
+    this.cbgCoordMap = util.getCbgToCoordsMap(cbgData);
     this.cbgToCoordVisitsMap = this.getCbgToCoordVisitsMap_();
     this.cbgToVisitsFeaturesMap = this.getCbgToVisitsFeaturesMap_();
   }
 
   /**
-   * Draws the network analysis on the given map as a layer.
+   * Draws the analysis on the given map as a layer.
    * @param {!mapboxgl.Map} map
    */
   applyToMap(map) {
-    map.addSource('cbgNetwork', {
+    if (this.map) {
+      return;
+    }
+
+    map.addSource(this.id, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
@@ -34,9 +37,9 @@ export class NetworkAnalysis {
     });
 
     map.addLayer({
-      id: 'cbgNetwork',
+      id: this.id,
       type: 'line',
-      source: 'cbgNetwork',
+      source: this.id,
       layout: {
         visibility: 'visible',
       },
@@ -45,7 +48,10 @@ export class NetworkAnalysis {
         'line-opacity': ['get', 'opacity'],
         'line-width': ['get', 'width'],
       },
-    });
+    },
+    util.getFirstSymbolMapLayerId(map));
+
+    super.applyToMap(map);
   }
 
   /**
@@ -58,7 +64,7 @@ export class NetworkAnalysis {
    * @private
    */
   convertCoordVisitToLineFeature_(cbgCoord, coordVisit) {
-    const ratio = Math.min(coordVisit.value / 30, 1);
+    const ratio = Math.min(Math.max(coordVisit.value - 4, 0) / 20, 1);
     return {
       type: 'Feature',
       geometry: {
@@ -115,17 +121,4 @@ export class NetworkAnalysis {
     }
     return map;
   }
-}
-
-/**
- * Returns a map of CBG ID to its corresponding centroid coordinate [lon, lat].
- * @return {!Map<string, [number, number]>}
- */
-function getCbgToCoordMap() {
-  return new Map(cbgData.features.map((feature) => {
-    return [
-      feature.properties['CensusBlockGroup'],
-      feature.geometry.coordinates,
-    ];
-  }));
 }
