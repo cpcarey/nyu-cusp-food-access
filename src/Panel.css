@@ -1,5 +1,6 @@
 .panel {
   background: #343332;
+  color: #fff;
   flex-basis: 48px;
   height: 100%;
   min-width: 48px;
@@ -30,8 +31,31 @@
   top: 16px;
 }
 
+.panel-control {
+  display: flex;
+  padding: 8px;
+  justify-content: space-between;
+}
+
+.panel-control input[type="checkbox"] {
+  height: 16px;
+  width: 16px;
+}
+
+.panel-controls {
+  height: calc(100% - 56px);
+  margin-bottom: 40px;
+  margin-top: 16px;
+  position: absolute;
+  width: 196px;
+}
+
 .panel-left {
   left: 0;
+}
+
+.panel-left .panel-controls {
+  right: 48px;
 }
 
 .panel-left button {
@@ -40,6 +64,10 @@
 
 .panel-right {
   right: 0;
+}
+
+.panel-right .panel-controls {
+  left: 48px;
 }
 
 .panel-right button {

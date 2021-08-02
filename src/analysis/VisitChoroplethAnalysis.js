@@ -17,6 +17,21 @@ export class VisitChoroplethAnalysis {
     this.cbgToPolygonsMap = getCbgToPolygonsMap();
     this.cbgToVisitsMap = this.getCbgToVisitsMap_();
     this.cbgToFeatureMap = this.getCbgToFeatureMap_();
+
+    this.applied = false;
+    this.map = null;
+  }
+
+  hide() {
+    if (!this.map) {
+      return;
+    }
+
+    this.map.setLayoutProperty(this.id, 'visibility', 'none');
+  }
+
+  show() {
+    this.map.setLayoutProperty(this.id, 'visibility', 'visible');
   }
 
   /**
@@ -24,6 +39,10 @@ export class VisitChoroplethAnalysis {
    * @param {!mapboxgl.Map} map
    */
   applyToMap(map) {
+    if (this.applied) {
+      return;
+    }
+
     map.addSource(this.id, {
       type: 'geojson',
       data: {
@@ -45,6 +64,9 @@ export class VisitChoroplethAnalysis {
       },
     },
     getFirstSymbolMapLayerId(map));
+
+    this.applied = true;
+    this.map = map;
   }
 
   convertCoordVisitToMultiPolygonFeature_(cbgId) {

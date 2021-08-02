@@ -17,6 +17,22 @@ export class NetworkAnalysis {
     this.cbgCoordMap = getCbgToCoordMap();
     this.cbgToCoordVisitsMap = this.getCbgToCoordVisitsMap_();
     this.cbgToVisitsFeaturesMap = this.getCbgToVisitsFeaturesMap_();
+
+    this.applied = false;
+    this.map = null;
+    this.id = 'cbgNetwork';
+  }
+
+  hide() {
+    if (!this.map) {
+      return;
+    }
+
+    this.map.setLayoutProperty(this.id, 'visibility', 'none');
+  }
+
+  show() {
+    this.map.setLayoutProperty(this.id, 'visibility', 'visible');
   }
 
   /**
@@ -24,7 +40,11 @@ export class NetworkAnalysis {
    * @param {!mapboxgl.Map} map
    */
   applyToMap(map) {
-    map.addSource('cbgNetwork', {
+    if (this.map) {
+      return;
+    }
+
+    map.addSource(this.id, {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
@@ -34,9 +54,9 @@ export class NetworkAnalysis {
     });
 
     map.addLayer({
-      id: 'cbgNetwork',
+      id: this.id,
       type: 'line',
-      source: 'cbgNetwork',
+      source: this.id,
       layout: {
         visibility: 'visible',
       },
@@ -47,6 +67,9 @@ export class NetworkAnalysis {
       },
     },
     getFirstSymbolMapLayerId(map));
+
+    this.applied = true;
+    this.map = map;
   }
 
   /**

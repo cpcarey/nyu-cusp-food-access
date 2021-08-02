@@ -11,10 +11,14 @@ import './DataMap.css';
 
 mapboxgl.accessToken = tokens.mapbox;
 
-export function DataMap() {
+export function DataMap({homeCbg, poiCbg, tripNetwork}) {
   const mapContainerRef = useRef(null);
-  const [lon] = useState(constants.INIT_LON);
+  const [homeCbgAnalysis, setHomeCbgAnalysis] = useState(null);
   const [lat] = useState(constants.INIT_LAT);
+  const [lon] = useState(constants.INIT_LON);
+  const [map, setMap] = useState(null);
+  const [networkAnalysis, setNetworkAnalysis] = useState(null);
+  const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
 
   useEffect(() => {
@@ -48,10 +52,11 @@ export function DataMap() {
           }
         });
 
-      const poiCbgAnalysis =
-          new VisitChoroplethAnalysis(cbgIds, csvPoiMap, 100);
-      const homeCbgAnalysis =
-          new VisitChoroplethAnalysis(cbgIds, csvHomeMap, 50, '#f8d754', 'cbg2');
+      setNetworkAnalysis(new NetworkAnalysis(cbgIds, csvPoiMap));
+      setPoiCbgAnalysis(new VisitChoroplethAnalysis(cbgIds, csvPoiMap, 100));
+      setHomeCbgAnalysis(
+          new VisitChoroplethAnalysis(
+              cbgIds, csvHomeMap, 50, '#f8d754', 'cbg2'));
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -62,12 +67,37 @@ export function DataMap() {
 
       map.on('load', () => {
         map.resize();
-
-        poiCbgAnalysis.applyToMap(map);
-        homeCbgAnalysis.applyToMap(map);
+        setMap(map);
       });
     })();
   }, [lat, lon, zoom]);
+
+  useEffect(() => {
+    if (!map) {
+      return;
+    }
+
+    if (poiCbg) {
+      poiCbgAnalysis.applyToMap(map);
+      poiCbgAnalysis.show();
+    } else {
+      poiCbgAnalysis.hide();
+    }
+
+    if (homeCbg) {
+      homeCbgAnalysis.applyToMap(map);
+      homeCbgAnalysis.show();
+    } else {
+      homeCbgAnalysis.hide();
+    }
+
+    if (tripNetwork) {
+      networkAnalysis.applyToMap(map);
+      networkAnalysis.show();
+    } else {
+      networkAnalysis.hide();
+    }
+  }, [homeCbg, poiCbg, map, tripNetwork]);
 
   return (
     <div className="data-map">
