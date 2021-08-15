@@ -1,0 +1,9 @@
+.app {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-items: space-evenly;
+  position: relative;
+  text-align: center;
+  width: 100%;
+}
