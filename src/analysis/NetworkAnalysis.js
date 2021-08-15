@@ -44,7 +44,7 @@ export class NetworkAnalysis extends Analysis {
         visibility: 'visible',
       },
       paint: {
-        'line-color': '#fff',
+        'line-color': '#f85495',
         'line-opacity': ['get', 'opacity'],
         'line-width': ['get', 'width'],
       },
@@ -64,7 +64,7 @@ export class NetworkAnalysis extends Analysis {
    * @private
    */
   convertCoordVisitToLineFeature_(cbgCoord, coordVisit) {
-    const ratio = Math.min(Math.max(coordVisit.value - 4, 0) / 20, 1);
+    const ratio = Math.min(Math.max(coordVisit.value - 2, 0) / 30, 1);
     return {
       type: 'Feature',
       geometry: {
