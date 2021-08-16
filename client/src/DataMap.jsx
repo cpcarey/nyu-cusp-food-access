@@ -63,7 +63,7 @@ export function DataMap({configState}) {
             const cbgId = parseInt(row[0]);
             const naicsCode = parseInt(row[1]);
             const value = parseFloat(row[2]);
-            if (NAICS_CODES.get(NaicsCode.RESTAURANTS).has(naicsCode)) {
+            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
               cbgValueMap.set(cbgId, value);
             }
           }
@@ -85,18 +85,40 @@ export function DataMap({configState}) {
     })();
   }, [lat, lon, zoom]);
 
+
+  useEffect(() => {
+    (async function() {
+      if (!map) {
+        return;
+      }
+
+      const cbgValueMap = new Map();
+
+      await fetch(csvDataUrl)
+        .then((data) => data.text())
+        .then((text) => {
+          const csvData = csvParse(text);
+          for (let row of csvData.slice(1)) {
+            const cbgId = parseInt(row[0]);
+            const naicsCode = parseInt(row[1]);
+            const value = parseFloat(row[2]);
+            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
+              cbgValueMap.set(cbgId, value);
+            }
+          }
+        });
+
+      poiCbgAnalysis.setCbgValueMap(cbgValueMap);
+    })();
+  }, [configState]);
+
   useEffect(() => {
     if (!map) {
       return;
     }
 
-    if (configState.layers.poiCbg) {
-      poiCbgAnalysis.applyToMap(map);
-      poiCbgAnalysis.show();
-    } else {
-      poiCbgAnalysis.hide();
-    }
-  }, [configState, map]);
+    poiCbgAnalysis.applyToMap(map);
+  }, [map]);
 
   return (
     <div className="data-map">

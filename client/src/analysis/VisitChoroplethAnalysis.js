@@ -17,10 +17,7 @@ export class VisitChoroplethAnalysis extends Analysis {
     this.threshold = threshold;
     this.id = id;
 
-    this.cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
-
-    this.cbgToPolygonsMap = util.getCbgToCoordsMap(cbgData);
-    this.cbgToFeatureMap = this.getCbgToFeatureMap_();
+    this.setCbgValueMap(cbgValueMap);
   }
 
   /**
@@ -55,6 +52,19 @@ export class VisitChoroplethAnalysis extends Analysis {
     util.getFirstSymbolMapLayerId(map));
 
     super.applyToMap(map);
+  }
+
+  setCbgValueMap(cbgValueMap) {
+    this.cbgValueMap = cbgValueMap;
+    this.cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
+    this.cbgToPolygonsMap = util.getCbgToCoordsMap(cbgData);
+    this.cbgToFeatureMap = this.getCbgToFeatureMap_();
+    if (this.map) {
+      this.map.getSource(this.id).setData({
+        type: 'FeatureCollection',
+        features: [...this.cbgToFeatureMap.values()],
+      });
+    }
   }
 
   convertCoordVisitToMultiPolygonFeature_(cbgId) {

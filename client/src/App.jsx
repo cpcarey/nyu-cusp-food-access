@@ -2,15 +2,15 @@ import React, {useState} from 'react';
 import {DataMap} from 'DataMap.jsx';
 import {Panel} from 'Panel.jsx';
 
+import {MetricType, NaicsCode, VisualizationType} from 'enum.js';
+
 import './App.css';
 
 function App() {
   const [configState, setConfigState] = useState({
-    layers: {
-      homeCbg: false,
-      poiCbg: true,
-      tripNetwork: false,
-    },
+    attributeClass: NaicsCode.SUPERMARKETS,
+    metricType: MetricType.DENSITY,
+    visualizationType: VisualizationType.CHOROPLETH,
   });
 
   return (

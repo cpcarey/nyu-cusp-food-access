@@ -12,33 +12,10 @@ export function Panel({configState, setConfigState, side}) {
   ].filter((className) => className.length).join(' ');
   const classNameIcon = side ? 'far fa-chart-bar' : 'fas fa-cog';
 
-  function handleLayerHomeCbgChange(configState) {
+  function handleAttributeClassChange(e, configState) {
     setConfigState({
       ...configState,
-      layers: {
-        ...configState.layers,
-        homeCbg: !configState.layers.homeCbg,
-      },
-    });
-  }
-
-  function handleLayerPoiCbgChange(configState) {
-    setConfigState({
-      ...configState,
-      layers: {
-        ...configState.layers,
-        poiCbg: !configState.layers.poiCbg,
-      },
-    });
-  }
-
-  function handleLayerTripNetworkChange(configState) {
-    setConfigState({
-      ...configState,
-      layers: {
-        ...configState.layers,
-        tripNetwork: !configState.layers.tripNetwork,
-      },
+      attributeClass: parseInt(e.target.value),
     });
   }
 
@@ -59,7 +36,7 @@ export function Panel({configState, setConfigState, side}) {
           <div className="panel-control dropdown">
             <div>Attribute Class</div>
             <div>
-              <select>
+              <select onChange={(e) => handleAttributeClassChange(e, configState)}>
                 <option value="0">Supermarkets</option>
                 <option value="1">General Stores</option>
                 <option value="2">Restaurants</option>
