@@ -1,5 +1,7 @@
 # NYU CUSP Capstone Project
 
+![Screenshot of Client Application](./docs/screenshot.png)
+
 ## Installing client
 
  1. Navigate to the `client/` directory
