@@ -4,19 +4,22 @@ import * as util from 'analysis/util';
 
 export class VisitChoroplethAnalysis extends Analysis {
   /**
-   * @param {string} Choropleth color
-   * @oaram {string} Analysis ID to use within Mapbox
+   * @param {string} color Choropleth color
+   * @param {string} id Analysis ID to use within Mapbox
    * @override
    */
-  constructor(cbgIds, csvMap, threshold=100, color='#b654f8', id='cbg1') {
-    super(cbgIds, csvMap);
+  constructor(cbgValueMap, threshold=100, colorMax='#ff2200', colorMin='#00adff', id='cbg1') {
+    super(cbgValueMap);
 
-    this.color = color;
+    this.colorMin = colorMin;
+    this.colorMax = colorMax;
+
     this.threshold = threshold;
     this.id = id;
 
+    this.cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
+
     this.cbgToPolygonsMap = util.getCbgToCoordsMap(cbgData);
-    this.cbgToVisitsMap = this.getCbgToVisitsMap_();
     this.cbgToFeatureMap = this.getCbgToFeatureMap_();
   }
 
@@ -45,7 +48,7 @@ export class VisitChoroplethAnalysis extends Analysis {
         visibility: 'visible',
       },
       paint: {
-        'fill-color': this.color,
+        'fill-color': ['get', 'color'],
         'fill-opacity': ['get', 'opacity'],
       },
     },
@@ -55,7 +58,10 @@ export class VisitChoroplethAnalysis extends Analysis {
   }
 
   convertCoordVisitToMultiPolygonFeature_(cbgId) {
-    const ratio = Math.min((this.cbgToVisitsMap.get(cbgId) || 0) / this.threshold, 1);
+    const ratio =
+        this.cbgNormalizedValueMap.has(cbgId)
+            ? (this.cbgNormalizedValueMap.get(cbgId) - 0.5) * 2
+            : 0;
     return {
       type: 'Feature',
       geometry: {
@@ -63,7 +69,8 @@ export class VisitChoroplethAnalysis extends Analysis {
         coordinates: this.cbgToPolygonsMap.get(cbgId),
       },
       properties: {
-        'opacity': ratio * 0.4,
+        'color': ratio > 0 ? this.colorMax : this.colorMin,
+        'opacity': Math.abs(ratio),
       },
     };
   }
@@ -75,17 +82,5 @@ export class VisitChoroplethAnalysis extends Analysis {
           cbgId, this.convertCoordVisitToMultiPolygonFeature_(cbgId));
     }
     return cbgToFeatureMap;
-  }
-
-  /**
-   * @return {!Map<string, {coord: [number, number], value: number}>}
-   * @private
-   */
-  getCbgToVisitsMap_() {
-    const cbgToCoordVisitsMap = new Map();
-    for (const [cbgId, visitsByCbg] of this.csvMap.entries()) {
-      cbgToCoordVisitsMap.set(cbgId, visitsByCbg.reduce((a, b) => a + b));
-    }
-    return cbgToCoordVisitsMap;
   }
 }

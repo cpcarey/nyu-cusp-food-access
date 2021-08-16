@@ -47,29 +47,35 @@ export function Panel({configState, setConfigState, side}) {
   if (side === 0) {
     controls =
         <div className="panel-controls">
-          <div className="panel-control">
-            <div>POI CBGs</div>
-            <input
-              checked={configState.layers.poiCbg}
-              onChange={() => handleLayerPoiCbgChange(configState)}
-              type="checkbox"
-              />
+          <div className="panel-control dropdown">
+            <div>Visualization</div>
+            <div>
+              <select>
+                <option value="0">Choropleth</option>
+                <option value="1">Trip Network</option>
+              </select>
+            </div>
           </div>
-          <div className="panel-control">
-            <div>Home CBGs</div>
-            <input
-              checked={configState.layers.homeCbg}
-              onChange={() => handleLayerHomeCbgChange(configState)}
-              type="checkbox"
-              />
+          <div className="panel-control dropdown">
+            <div>Attribute Class</div>
+            <div>
+              <select>
+                <option value="0">Supermarkets</option>
+                <option value="1">General Stores</option>
+                <option value="2">Restaurants</option>
+                <option value="3">Community Food Services</option>
+                <option value="4">Supplement Stores</option>
+                <option value="5">Tobacco & Liquor Stores</option>
+              </select>
+            </div>
           </div>
-          <div className="panel-control">
-            <div>Trip Network</div>
-            <input
-              checked={configState.layers.tripNetwork}
-              onChange={() => handleLayerTripNetworkChange(configState)}
-              type="checkbox"
-              />
+          <div className="panel-control dropdown">
+            <div>Metric</div>
+            <div>
+              <select>
+                <option value="0">Density</option>
+              </select>
+            </div>
           </div>
         </div>;
   }

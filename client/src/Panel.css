@@ -31,10 +31,15 @@
   top: 16px;
 }
 
-.panel-control {
+.panel-control.checkbox {
   display: flex;
   padding: 8px;
   justify-content: space-between;
+}
+
+.panel-control.dropdown {
+  padding: 8px;
+  text-align: left;
 }
 
 .panel-control input[type="checkbox"] {
