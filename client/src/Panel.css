@@ -78,3 +78,45 @@
 .panel-right button {
   left: 0;
 }
+
+select {
+  appearance: none;
+  background: #222;
+  border: 0 !important;
+  color: #fff;
+  cursor: pointer;
+  flex: 1;
+  font-family: 'Ubuntu', 'Arial Unicode MS Bold', sans-serif;
+  font-size: 14px;
+  outline: 0;
+  padding: 2px 8px;
+}
+
+.select-container {
+  background: #222;
+  display: flex;
+  height: 24px;
+  line-height: 2;
+  margin: 4px 0;
+  overflow: hidden;
+  position: relative;
+  width: 180px;
+}
+
+.select-container::after {
+  background: #292929;
+  color: #ddd;
+  content: '\25BC';
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 8px;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: .2s all ease;
+}
+
+.select-container:hover::after {
+  color: #fff;
+}

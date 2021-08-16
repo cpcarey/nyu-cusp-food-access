@@ -26,7 +26,7 @@ export function Panel({configState, setConfigState, side}) {
         <div className="panel-controls">
           <div className="panel-control dropdown">
             <div>Visualization</div>
-            <div>
+            <div class="select-container">
               <select>
                 <option value="0">Choropleth</option>
                 <option value="1">Trip Network</option>
@@ -35,7 +35,7 @@ export function Panel({configState, setConfigState, side}) {
           </div>
           <div className="panel-control dropdown">
             <div>Attribute Class</div>
-            <div>
+            <div class="select-container">
               <select onChange={(e) => handleAttributeClassChange(e, configState)}>
                 <option value="0">Supermarkets</option>
                 <option value="1">General Stores</option>
@@ -48,7 +48,7 @@ export function Panel({configState, setConfigState, side}) {
           </div>
           <div className="panel-control dropdown">
             <div>Metric</div>
-            <div>
+            <div class="select-container">
               <select>
                 <option value="0">Density</option>
               </select>
