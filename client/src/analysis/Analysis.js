@@ -1,12 +1,9 @@
 export class Analysis {
   /**
-   * @param {!Array<string>} cbgIds
-   * @param {!Map<string, !Array<number>} csvMap Map of CBG ID to array of
-   *   visits per CBG from adjacency matrix CSV.
+   * @param {!Map<string, number>} cbgValueMap Map of CBG ID to value.
    */
-  constructor(cbgIds, csvMap) {
-    this.cbgIds = cbgIds;
-    this.csvMap = csvMap;
+  constructor(cbgValueMap) {
+    this.cbgValueMap = cbgValueMap;
 
     this.map = null;
     this.id = null;

@@ -3,9 +3,10 @@ import React, {useRef, useEffect, useState} from 'react';
 import mapboxgl from '!mapbox-gl'; // eslint-disable-line import/no-webpack-loader-syntax
 import {tokens} from 'private-tokens';
 import csvParse from 'csv-parse/lib/sync';
-import csvDataUrl from 'data/20210301_supermarkets.csv';
+import csvDataUrl from 'data/20210301_cbg_density.csv';
 import {NetworkAnalysis} from 'analysis/NetworkAnalysis.js';
 import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
+import {NaicsCode} from 'enum.js';
 
 import './DataMap.css';
 
@@ -21,42 +22,54 @@ export function DataMap({configState}) {
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
 
+  const NAICS_CODES = new Map([
+    [
+      NaicsCode.SUPERMARKETS,
+      new Set([
+        4452, 445210, 445220, 445230, 445291, 445292, 445299, 311811, 445110,
+      ]),
+    ],
+    [
+      NaicsCode.GENERAL,
+      new Set([4539, 445120, 452319, 453998, 452210]),
+    ],
+    [
+      NaicsCode.RESTAURANTS,
+      new Set([7225, 722511, 722513, 722514, 722515]),
+    ],
+    [
+      NaicsCode.COMMUNITY,
+      new Set([624210, 722320]),
+    ],
+    [
+      NaicsCode.SUPPLEMENTS,
+      new Set([446110, 446191]),
+    ],
+    [
+      NaicsCode.TOBACCO_LIQUOR,
+      new Set([445310, 453991, 722410]),
+    ],
+  ]);
+
   useEffect(() => {
     (async function() {
-      const csvPoiMap = new Map();
-      const csvHomeMap = new Map();
-      let cbgIds = [];
+      const cbgValueMap = new Map();
 
       await fetch(csvDataUrl)
         .then((data) => data.text())
         .then((text) => {
           const csvData = csvParse(text);
-          const columnCbgIds = csvData[0].slice(1);
-          const rowCbgIds = csvData.slice(1).map((row) => row[0]);
-          const columnCbgIdSet = new Set(columnCbgIds);
-          cbgIds = [
-            ...columnCbgIds,
-            rowCbgIds.filter((id) => !columnCbgIdSet.has(id))
-          ];
-
-          for (let i = 1; i < csvData.length; i++) {
-            csvPoiMap.set(
-                csvData[i][0],
-                csvData[i].slice(1).map((cell) => parseInt(cell)));
-          }
-
-          for (let i = 1; i < csvData[0].length; i++) {
-            csvHomeMap.set(
-                csvData[0][i],
-                csvData.slice(1).map((row) => parseInt(row[i])));
+          for (let row of csvData.slice(1)) {
+            const cbgId = parseInt(row[0]);
+            const naicsCode = parseInt(row[1]);
+            const value = parseFloat(row[2]);
+            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
+              cbgValueMap.set(cbgId, value);
+            }
           }
         });
 
-      setNetworkAnalysis(new NetworkAnalysis(cbgIds, csvPoiMap));
-      setPoiCbgAnalysis(new VisitChoroplethAnalysis(cbgIds, csvPoiMap, 100));
-      setHomeCbgAnalysis(
-          new VisitChoroplethAnalysis(
-              cbgIds, csvHomeMap, 50, '#f8d754', 'cbg2'));
+      setPoiCbgAnalysis(new VisitChoroplethAnalysis(cbgValueMap, 0));
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -72,32 +85,40 @@ export function DataMap({configState}) {
     })();
   }, [lat, lon, zoom]);
 
+
+  useEffect(() => {
+    (async function() {
+      if (!map) {
+        return;
+      }
+
+      const cbgValueMap = new Map();
+
+      await fetch(csvDataUrl)
+        .then((data) => data.text())
+        .then((text) => {
+          const csvData = csvParse(text);
+          for (let row of csvData.slice(1)) {
+            const cbgId = parseInt(row[0]);
+            const naicsCode = parseInt(row[1]);
+            const value = parseFloat(row[2]);
+            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
+              cbgValueMap.set(cbgId, value);
+            }
+          }
+        });
+
+      poiCbgAnalysis.setCbgValueMap(cbgValueMap);
+    })();
+  }, [configState]);
+
   useEffect(() => {
     if (!map) {
       return;
     }
 
-    if (configState.layers.poiCbg) {
-      poiCbgAnalysis.applyToMap(map);
-      poiCbgAnalysis.show();
-    } else {
-      poiCbgAnalysis.hide();
-    }
-
-    if (configState.layers.homeCbg) {
-      homeCbgAnalysis.applyToMap(map);
-      homeCbgAnalysis.show();
-    } else {
-      homeCbgAnalysis.hide();
-    }
-
-    if (configState.layers.tripNetwork) {
-      networkAnalysis.applyToMap(map);
-      networkAnalysis.show();
-    } else {
-      networkAnalysis.hide();
-    }
-  }, [configState, map]);
+    poiCbgAnalysis.applyToMap(map);
+  }, [map]);
 
   return (
     <div className="data-map">
