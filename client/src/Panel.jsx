@@ -12,6 +12,13 @@ export function Panel({configState, setConfigState, side}) {
   ].filter((className) => className.length).join(' ');
   const classNameIcon = side ? 'far fa-chart-bar' : 'fas fa-cog';
 
+  function handleAggregationTypeChange(e, configState) {
+    setConfigState({
+      ...configState,
+      aggregationType: parseInt(e.target.value),
+    });
+  }
+
   function handleAttributeClassChange(e, configState) {
     setConfigState({
       ...configState,
@@ -122,6 +129,16 @@ export function Panel({configState, setConfigState, side}) {
               <select>
                 <option value="0">Visitors</option>
                 <option value="1">Density</option>
+              </select>
+            </div>
+          </div>
+          <div className="panel-control dropdown">
+            <div>Aggregation</div>
+            <div className="select-container">
+              <select onChange={(e) => handleAggregationTypeChange(e, configState)}>
+                <option value="0">AVG</option>
+                <option value="1">MEDIAN</option>
+                <option value="2">SUM</option>
               </select>
             </div>
           </div>

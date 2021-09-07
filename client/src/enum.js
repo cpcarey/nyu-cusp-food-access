@@ -4,6 +4,10 @@ export const AggregationType = {
   SUM: 2,
 };
 
+export const AttributeType = {
+  NAICS_CODE_GROUP: 0,
+};
+
 export const NaicsCodeGroup = {
   SUPERMARKETS: 0,
   GENERAL: 1,
@@ -11,10 +15,6 @@ export const NaicsCodeGroup = {
   COMMUNITY: 3,
   SUPPLEMENTS: 4,
   TOBACCO_LIQUOR: 5,
-};
-
-export const AttributeType = {
-  NAICS_CODE_GROUP: 0,
 };
 
 export const VisualizationType = {

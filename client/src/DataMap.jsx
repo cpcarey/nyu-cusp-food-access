@@ -51,28 +51,33 @@ export function DataMap({configState}) {
     ],
   ]);
 
+  function constructQueryUrl(configState) {
+    const attribute = 'naics_code';
+
+    let url = 'http://localhost:5000/q';
+    url += `?a=${attribute}`
+    url += `&av=${configState.attributeClass}`
+    url += `&ds=${configState.dateStart}`
+    url += `&de=${configState.dateEnd}`
+    url += `&agg=${configState.aggregationType}`
+    return url;
+  }
+
+  async function fetchDataAndUpdateMap(configState, cbgValueMap) {
+    const url = constructQueryUrl(configState);
+    await fetch(url)
+      .then((data) => data.json())
+      .then((json) => {
+        for (const key of Object.keys(json)) {
+          cbgValueMap.set(parseInt(key), json[key]);
+        }
+      });
+  }
+
   useEffect(() => {
     (async function() {
       const cbgValueMap = new Map();
-      const attribute = 'naics_code';
-      const attributeValue = 0;
-      const dateStart = '2020-03-01';
-      const dateEnd = '2020-04-01';
-
-      let url = 'http://localhost:5000/q';
-      url += `?a=${attribute}`
-      url += `&av=${attributeValue}`
-      url += `&ds=${dateStart}`
-      url += `&de=${dateEnd}`
-
-      await fetch(url)
-        .then((data) => data.json())
-        .then((json) => {
-          for (const key of Object.keys(json)) {
-            cbgValueMap.set(parseInt(key), json[key]);
-          }
-        });
-
+      await fetchDataAndUpdateMap(configState, cbgValueMap);
       setPoiCbgAnalysis(new VisitChoroplethAnalysis(cbgValueMap, 0));
 
       const map = new mapboxgl.Map({
@@ -97,26 +102,7 @@ export function DataMap({configState}) {
       }
 
       const cbgValueMap = new Map();
-      const attribute = 'naics_code';
-      const attributeValue = configState.attributeClass;
-      const dateStart = configState.dateStart;
-      const dateEnd = configState.dateEnd;
-
-      let url = 'http://localhost:5000/q';
-      url += `?a=${attribute}`
-      url += `&av=${attributeValue}`
-      url += `&ds=${dateStart}`
-      url += `&de=${dateEnd}`
-      console.log(url);
-
-      await fetch(url)
-        .then((data) => data.json())
-        .then((json) => {
-          for (const key of Object.keys(json)) {
-            cbgValueMap.set(parseInt(key), json[key]);
-          }
-        });
-
+      await fetchDataAndUpdateMap(configState, cbgValueMap);
       poiCbgAnalysis.setCbgValueMap(cbgValueMap);
     })();
   }, [configState]);
