@@ -22,10 +22,16 @@ export function getFirstSymbolMapLayerId(map) {
 }
 
 export function getMean(values) {
+  if (!values.length) {
+    return 0;
+  }
   return values.reduce((a, b) => a + b) / values.length;
 }
 
 export function getStd(values) {
+  if (!values.length) {
+    return 0;
+  }
   const mean = getMean(values);
   const dists = values.map((x) => (x - mean) ** 2);
   return Math.sqrt(dists.reduce((a, b) => a + b) / values.length);

@@ -6,7 +6,7 @@ import csvParse from 'csv-parse/lib/sync';
 import csvDataUrl from 'data/20210301_cbg_density.csv';
 import {NetworkAnalysis} from 'analysis/NetworkAnalysis.js';
 import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
-import {NaicsCode} from 'enum.js';
+import {NaicsCodeGroup} from 'enum.js';
 
 import './DataMap.css';
 
@@ -24,29 +24,29 @@ export function DataMap({configState}) {
 
   const NAICS_CODES = new Map([
     [
-      NaicsCode.SUPERMARKETS,
+      NaicsCodeGroup.SUPERMARKETS,
       new Set([
         4452, 445210, 445220, 445230, 445291, 445292, 445299, 311811, 445110,
       ]),
     ],
     [
-      NaicsCode.GENERAL,
+      NaicsCodeGroup.GENERAL,
       new Set([4539, 445120, 452319, 453998, 452210]),
     ],
     [
-      NaicsCode.RESTAURANTS,
+      NaicsCodeGroup.RESTAURANTS,
       new Set([7225, 722511, 722513, 722514, 722515]),
     ],
     [
-      NaicsCode.COMMUNITY,
+      NaicsCodeGroup.COMMUNITY,
       new Set([624210, 722320]),
     ],
     [
-      NaicsCode.SUPPLEMENTS,
+      NaicsCodeGroup.SUPPLEMENTS,
       new Set([446110, 446191]),
     ],
     [
-      NaicsCode.TOBACCO_LIQUOR,
+      NaicsCodeGroup.TOBACCO_LIQUOR,
       new Set([445310, 453991, 722410]),
     ],
   ]);
@@ -54,18 +54,22 @@ export function DataMap({configState}) {
   useEffect(() => {
     (async function() {
       const cbgValueMap = new Map();
+      const attribute = 'naics_code';
+      const attributeValue = 0;
+      const dateStart = '2020-03-01';
+      const dateEnd = '2020-04-01';
 
-      await fetch(csvDataUrl)
-        .then((data) => data.text())
-        .then((text) => {
-          const csvData = csvParse(text);
-          for (let row of csvData.slice(1)) {
-            const cbgId = parseInt(row[0]);
-            const naicsCode = parseInt(row[1]);
-            const value = parseFloat(row[2]);
-            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
-              cbgValueMap.set(cbgId, value);
-            }
+      let url = 'http://localhost:5000/q';
+      url += `?a=${attribute}`
+      url += `&av=${attributeValue}`
+      url += `&ds=${dateStart}`
+      url += `&de=${dateEnd}`
+
+      await fetch(url)
+        .then((data) => data.json())
+        .then((json) => {
+          for (const key of Object.keys(json)) {
+            cbgValueMap.set(parseInt(key), json[key]);
           }
         });
 
@@ -93,18 +97,23 @@ export function DataMap({configState}) {
       }
 
       const cbgValueMap = new Map();
+      const attribute = 'naics_code';
+      const attributeValue = configState.attributeClass;
+      const dateStart = configState.dateStart;
+      const dateEnd = configState.dateEnd;
 
-      await fetch(csvDataUrl)
-        .then((data) => data.text())
-        .then((text) => {
-          const csvData = csvParse(text);
-          for (let row of csvData.slice(1)) {
-            const cbgId = parseInt(row[0]);
-            const naicsCode = parseInt(row[1]);
-            const value = parseFloat(row[2]);
-            if (NAICS_CODES.get(configState.attributeClass).has(naicsCode)) {
-              cbgValueMap.set(cbgId, value);
-            }
+      let url = 'http://localhost:5000/q';
+      url += `?a=${attribute}`
+      url += `&av=${attributeValue}`
+      url += `&ds=${dateStart}`
+      url += `&de=${dateEnd}`
+      console.log(url);
+
+      await fetch(url)
+        .then((data) => data.json())
+        .then((json) => {
+          for (const key of Object.keys(json)) {
+            cbgValueMap.set(parseInt(key), json[key]);
           }
         });
 

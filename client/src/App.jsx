@@ -2,14 +2,18 @@ import React, {useState} from 'react';
 import {DataMap} from 'DataMap.jsx';
 import {Panel} from 'Panel.jsx';
 
-import {MetricType, NaicsCode, VisualizationType} from 'enum.js';
+import {AggregationType, AttributeType, MetricType, NaicsCodeGroup, VisualizationType} from 'enum.js';
 
 import './App.css';
 
 function App() {
   const [configState, setConfigState] = useState({
-    attributeClass: NaicsCode.SUPERMARKETS,
-    metricType: MetricType.DENSITY,
+    aggregationType: AggregationType.AVG,
+    attributeClass: NaicsCodeGroup.SUPERMARKETS,
+    attributeType: AttributeType.NAICS_CODE_GROUP,
+    dateEnd: '2020-04-01',
+    dateStart: '2020-03-01',
+    metricType: MetricType.VISITORS,
     visualizationType: VisualizationType.CHOROPLETH,
   });
 

@@ -1,4 +1,10 @@
-export const NaicsCode = {
+export const AggregationType = {
+  AVG: 0,
+  MEDIAN: 1,
+  SUM: 2,
+};
+
+export const NaicsCodeGroup = {
   SUPERMARKETS: 0,
   GENERAL: 1,
   RESTAURANTS: 2,
@@ -7,11 +13,16 @@ export const NaicsCode = {
   TOBACCO_LIQUOR: 5,
 };
 
+export const AttributeType = {
+  NAICS_CODE_GROUP: 0,
+};
+
 export const VisualizationType = {
   CHOROPLETH: 0,
   TRIP_NETWORK: 1,
 };
 
 export const MetricType = {
-  DENSITY: 0,
+  VISITORS: 0,
+  DENSITY: 1,
 };
