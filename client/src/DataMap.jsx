@@ -60,6 +60,7 @@ export function DataMap({configState}) {
     url += `&ds=${configState.dateStart}`
     url += `&de=${configState.dateEnd}`
     url += `&agg=${configState.aggregationType}`
+    url += `&m=${configState.metricType}`
     return url;
   }
 

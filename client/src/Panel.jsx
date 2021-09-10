@@ -64,6 +64,13 @@ export function Panel({configState, setConfigState, side}) {
     });
   }
 
+  function handleMetricTypeChange(e, configState) {
+    setConfigState({
+      ...configState,
+      metricType: parseInt(e.target.value),
+    });
+  }
+
   let controls;
   // TODO: Move checkbox to its own component.
   if (side === 0) {
@@ -126,9 +133,9 @@ export function Panel({configState, setConfigState, side}) {
           <div className="panel-control dropdown">
             <div>Metric</div>
             <div className="select-container">
-              <select>
-                <option value="0">Visitors</option>
-                <option value="1">Density</option>
+              <select onChange={(e) => handleMetricTypeChange(e, configState)}>
+                <option value="0">Visitor count</option>
+                <option value="1">Visitor density</option>
               </select>
             </div>
           </div>
@@ -136,9 +143,9 @@ export function Panel({configState, setConfigState, side}) {
             <div>Aggregation</div>
             <div className="select-container">
               <select onChange={(e) => handleAggregationTypeChange(e, configState)}>
-                <option value="0">AVG</option>
-                <option value="1">MEDIAN</option>
-                <option value="2">SUM</option>
+                <option value="0">Average</option>
+                <option value="1">Median</option>
+                <option value="2">Sum</option>
               </select>
             </div>
           </div>
