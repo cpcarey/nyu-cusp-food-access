@@ -26,6 +26,7 @@ parser.add_argument('agg')
 parser.add_argument('av')
 parser.add_argument('ds')
 parser.add_argument('de')
+parser.add_argument('m')
 
 class AggregationType(IntEnum):
     AVG = 0
@@ -39,6 +40,14 @@ class NaicsCodeGroup(IntEnum):
     COMMUNITY = 3
     SUPPLEMENTS = 4
     TOBACCO_LIQUOR = 5
+
+class MetricType(IntEnum):
+    RAW_VISITOR_COUNTS = 0
+    DENSITY = 1
+
+METRIC_NAMES = {
+    MetricType.RAW_VISITOR_COUNTS: 'raw_visitor_counts',
+}
 
 NAICS_CODES = {
     NaicsCodeGroup.SUPERMARKETS: [
@@ -56,7 +65,17 @@ class Query(Resource):
         attribute = args['a']
         attribute_value = args['av']
         attribute_sql = f' AND {attribute} = {attribute_value}'
-        metric = 'raw_visitor_counts'
+        metric = int(args['m'])
+        metric_sql = ''
+        filter_sqls = []
+
+        if metric in METRIC_NAMES:
+            metric = METRIC_NAMES[metric]
+            metric_sql = metric
+        elif metric == MetricType.DENSITY:
+            metric = 'density'
+            metric_sql = '(raw_visitor_counts / area_square_feet)'
+            filter_sqls = ' AND area_square_feet IS NOT NULL'
 
         aggregation_type = int(args['agg'])
         metric_aggregate = f'{metric}_agg'
@@ -73,23 +92,22 @@ class Query(Resource):
         client = bigquery.Client()
 
         aggregation_sql = ''
-        print(aggregation_type == AggregationType.AVG)
         if aggregation_type == AggregationType.SUM:
-            aggregation_sql = f'SUM({metric}) AS {metric_aggregate}'
+            aggregation_sql = f'SUM({metric_sql}) AS {metric_aggregate}'
         elif aggregation_type == AggregationType.AVG:
-            aggregation_sql = f'AVG({metric}) AS {metric_aggregate}'
+            aggregation_sql = f'AVG({metric_sql}) AS {metric_aggregate}'
         elif aggregation_type == AggregationType.MEDIAN:
-            aggregation_sql = f'fhoffa.x.median(ARRAY_AGG({metric})) AS {metric_aggregate}'
+            aggregation_sql = f'fhoffa.x.median(ARRAY_AGG({metric_sql})) AS {metric_aggregate}'
 
         query = ''
         query += f'SELECT poi_cbg, {aggregation_sql}'
         query += f' FROM `{TABLE_PATH}`'
         query += f' WHERE date_range_start BETWEEN TIMESTAMP("{date_start}")'
         query += f' AND TIMESTAMP("{date_end}")'
+        for filter_sql in filter_sqls:
+            query += filter_sql
         query += f' {attribute_sql}'
         query += ' GROUP BY poi_cbg'
-
-        print(query)
 
         job_config = bigquery.QueryJobConfig()
         response = client.query(query, job_config=job_config)
