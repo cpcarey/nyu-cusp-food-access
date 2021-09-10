@@ -69,9 +69,11 @@ export function DataMap({configState}) {
     await fetch(url)
       .then((data) => data.json())
       .then((json) => {
-        for (const key of Object.keys(json)) {
-          cbgValueMap.set(parseInt(key), json[key]);
+        const {query, response} = json;
+        for (const key of Object.keys(response)) {
+          cbgValueMap.set(parseInt(key), response[key]);
         }
+        console.debug(query);
       });
   }
 
