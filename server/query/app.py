@@ -112,11 +112,17 @@ class Query(Resource):
         job_config = bigquery.QueryJobConfig()
         response = client.query(query, job_config=job_config)
 
-        results = {}
+        resultsResponse = {}
         for row in response:
-            if row.poi_cbg not in results:
-                results[row.poi_cbg] = 0
-            results[row.poi_cbg] += row[metric_aggregate]
+            if row.poi_cbg not in resultsResponse:
+                resultsResponse[row.poi_cbg] = 0
+            resultsResponse[row.poi_cbg] += row[metric_aggregate]
+
+        results = {
+            'query': query,
+            'response': resultsResponse,
+        }
+
         return results
 
 api.add_resource(Query, '/q')
