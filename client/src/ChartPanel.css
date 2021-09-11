@@ -1,0 +1,13 @@
+.panel-content {
+  margin: 16px 16px 16px 48px;
+  text-align: left;
+}
+
+.value-row {
+  display: flex;
+}
+
+.value-row > *:first-child {
+  font-weight: 500;
+  width: 50px;
+}
