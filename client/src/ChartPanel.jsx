@@ -1,10 +1,12 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
+import Plot from 'react-plotly.js';
 
 import './ChartPanel.css';
 import './Panel.css';
 
-export function ChartPanel({mapState}) {
-  const [expanded, setExpanded] = useState(false);
+export function ChartPanel({dataState, mapState}) {
+  const [expanded, setExpanded] = useState(true);
+  const [values, setValues] = useState([]);
 
   const classNamePanel = [
     'panel',
@@ -28,6 +30,10 @@ export function ChartPanel({mapState}) {
     return mapState.hoveredCbg.value.toFixed(2);
   }
 
+  useEffect(() => {
+    setValues([...dataState.cbgNormalizedValueMap.values()]);
+  }, [dataState, setValues]);
+
   return (
     <div className={classNamePanel}>
       <div className="panel-content">
@@ -38,6 +44,33 @@ export function ChartPanel({mapState}) {
         <div className="value-row">
           <strong>Value:</strong>
           <span>{getValue()}</span>
+        </div>
+
+        <div className="plot-container">
+          <Plot
+            data={[
+              {
+                x: values,
+                type: 'histogram',
+              },
+            ]}
+            layout={{
+              height: 80,
+              paper_bgcolor: 'transparent',
+              plot_bgcolor: 'transparent',
+              width: 196,
+              margin: {
+                b: 0,
+                l: 0,
+                pad: 0,
+                r: 0,
+                t: 0,
+              },
+              yaxis: {
+                gridcolor: 'transparent',
+              },
+            }}
+          />
         </div>
       </div>
       <button onClick={() => setExpanded(!expanded)}>

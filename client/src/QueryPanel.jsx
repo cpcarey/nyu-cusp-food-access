@@ -3,7 +3,7 @@ import {useState} from 'react';
 import './Panel.css';
 
 export function QueryPanel({queryState, setQueryState}) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const classNamePanel = [
     'panel',
