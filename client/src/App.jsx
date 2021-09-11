@@ -10,6 +10,7 @@ import './App.css';
 function App() {
   const [dataState, setDataState] = useState({
     cbgNormalizedValueMap: new Map(),
+    cbgStandardizedValueMap: new Map(),
     cbgValueMap: new Map(),
   });
 

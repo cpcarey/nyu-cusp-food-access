@@ -92,9 +92,12 @@ export function DataMap(
       await fetchDataAndUpdateMap(queryState, cbgValueMap);
 
       const cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
+      const cbgStandardizedValueMap = util.standardizeMap(cbgValueMap, 4.0);
+
       setDataState({
         ...dataState,
         cbgNormalizedValueMap,
+        cbgStandardizedValueMap,
         cbgValueMap,
       })
       poiCbgAnalysis.setCbgValueMap(cbgValueMap);
