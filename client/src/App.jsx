@@ -1,13 +1,14 @@
 import React, {useState} from 'react';
+import {ChartPanel} from 'ChartPanel.jsx';
 import {DataMap} from 'DataMap.jsx';
-import {Panel} from 'Panel.jsx';
+import {QueryPanel} from 'QueryPanel.jsx';
 
 import {AggregationType, AttributeType, MetricType, NaicsCodeGroup, VisualizationType} from 'enum.js';
 
 import './App.css';
 
 function App() {
-  const [configState, setConfigState] = useState({
+  const [queryState, setQueryState] = useState({
     aggregationType: AggregationType.AVG,
     attributeClass: NaicsCodeGroup.SUPERMARKETS,
     attributeType: AttributeType.NAICS_CODE_GROUP,
@@ -17,17 +18,24 @@ function App() {
     visualizationType: VisualizationType.CHOROPLETH,
   });
 
+  const [mapState, setMapState] = useState({
+    hoveredCbg: null,
+  });
+
   return (
     <div className="app">
-      <Panel
-        configState={configState}
-        side={0}
-        setConfigState={setConfigState}
+      <QueryPanel
+        queryState={queryState}
+        setQueryState={setQueryState}
         />
       <DataMap
-        configState={configState}
+        mapState={mapState}
+        queryState={queryState}
+        setMapState={setMapState}
         />
-      <Panel side={1} />
+      <ChartPanel
+        mapState={mapState}
+        />
     </div>
   );
 }

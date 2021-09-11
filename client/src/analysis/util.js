@@ -3,7 +3,7 @@
  * the given CBG data.
  * @return {!Map<string, [number, number]>}
  */
-export function getCbgToCoordsMap(cbgData) {
+export function getCbgIdToCoordsMap(cbgData) {
   return new Map(cbgData.features.map((feature) => {
     return [
       parseInt(feature.properties['CensusBlockGroup']),
@@ -12,6 +12,10 @@ export function getCbgToCoordsMap(cbgData) {
   }));
 }
 
+/**
+ * @param {!mapboxgl.Map}
+ * @return {?string}
+ */
 export function getFirstSymbolMapLayerId(map) {
   for (const layer of map.getStyle().layers) {
     if (layer.type === 'symbol') {
@@ -21,34 +25,49 @@ export function getFirstSymbolMapLayerId(map) {
   return null;
 }
 
+/**
+ * @param {!Array<number>} values
+ * @return {number}
+ */
 export function getMean(values) {
-  if (!values.length) {
-    return 0;
-  }
-  return values.reduce((a, b) => a + b) / values.length;
+  return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
+/**
+ * @param {!Array<number>}
+ * @return number
+ */
 export function getStd(values) {
-  if (!values.length) {
-    return 0;
-  }
   const mean = getMean(values);
   const dists = values.map((x) => (x - mean) ** 2);
-  return Math.sqrt(dists.reduce((a, b) => a + b) / values.length);
+  return Math.sqrt(dists.reduce((a, b) => a + b, 0) / values.length);
 }
 
-export function standardize(values) {
-  const mean = getMean(values);
-  const std = getStd(values);
-  return values.map((x) => (x - mean) / std);
-}
-
+/**
+ * @param {!Array<number>} values
+ * @return {!Array<number>}
+ */
 export function normalize(values) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   return values.map((x) => (x - min) / (max - min));
 }
 
+/**
+ * @param {!Array<number>} values
+ * @return {!Array<number>}
+ */
+export function standardize(values) {
+  const mean = getMean(values);
+  const std = getStd(values);
+  return values.map((x) => (x - mean) / std);
+}
+
+/**
+ * @param {!Array<number>} values
+ * @param {number} sigma
+ * @return {!Array<number>}
+ */
 export function normalizeSigma(values, sigma) {
   const mean = getMean(values);
   const std = getStd(values);
@@ -60,6 +79,11 @@ export function normalizeSigma(values, sigma) {
   });
 }
 
+/**
+ * @param {!Array<T, number>} map
+ * @param {number} sigma
+ * @return {!Array<T, number>}
+ */
 export function normalizeSigmaMap(map, sigma) {
   const keys = [...map.keys()];
   const values = keys.map((key) => map.get(key));
@@ -67,6 +91,11 @@ export function normalizeSigmaMap(map, sigma) {
   return new Map(zip(keys, normalizedValues));
 }
 
+/**
+ * @param {!Array<S>} list1
+ * @param {!Array<T>} list2
+ * @return {!Array<[S, T]>}
+ */
 export function zip(list1, list2) {
   return Array(list1.length).fill(0).map((x, i) => [list1[i], list2[i]]);
 }

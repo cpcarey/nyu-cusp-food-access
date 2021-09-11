@@ -8,29 +8,30 @@ import './DataMap.css';
 
 mapboxgl.accessToken = tokens.mapbox;
 
-export function DataMap({configState}) {
+export function DataMap({mapState, queryState, setMapState}) {
   const mapContainerRef = useRef(null);
   const [lat] = useState(constants.INIT_LAT);
   const [lon] = useState(constants.INIT_LON);
+  const [hoveredCbg, setHoveredCbg] = useState(null);
   const [map, setMap] = useState(null);
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
 
-  function constructQueryUrl(configState) {
+  function constructQueryUrl(queryState) {
     const attribute = 'naics_code';
 
     let url = 'http://localhost:5000/q';
     url += `?a=${attribute}`
-    url += `&av=${configState.attributeClass}`
-    url += `&ds=${configState.dateStart}`
-    url += `&de=${configState.dateEnd}`
-    url += `&agg=${configState.aggregationType}`
-    url += `&m=${configState.metricType}`
+    url += `&av=${queryState.attributeClass}`
+    url += `&ds=${queryState.dateStart}`
+    url += `&de=${queryState.dateEnd}`
+    url += `&agg=${queryState.aggregationType}`
+    url += `&m=${queryState.metricType}`
     return url;
   }
 
-  const fetchDataAndUpdateMap = useCallback(async function(configState, cbgValueMap) {
-    const url = constructQueryUrl(configState);
+  const fetchDataAndUpdateMap = useCallback(async function(queryState, cbgValueMap) {
+    const url = constructQueryUrl(queryState);
     await fetch(url)
       .then((data) => data.json())
       .then((json) => {
@@ -42,9 +43,16 @@ export function DataMap({configState}) {
       });
   }, []);
 
+  useEffect(() => {
+    setMapState({
+      ...mapState,
+      hoveredCbg,
+    });
+  }, [hoveredCbg]);
+
   // Initialize.
   useEffect(() => {
-    setPoiCbgAnalysis(new VisitChoroplethAnalysis(new Map(), 0));
+    setPoiCbgAnalysis(new VisitChoroplethAnalysis(new Map(), setHoveredCbg));
   }, []);
 
   // Initialize map.
@@ -79,10 +87,10 @@ export function DataMap({configState}) {
 
     (async function() {
       const cbgValueMap = new Map();
-      await fetchDataAndUpdateMap(configState, cbgValueMap);
+      await fetchDataAndUpdateMap(queryState, cbgValueMap);
       poiCbgAnalysis.setCbgValueMap(cbgValueMap);
     })();
-  }, [configState, fetchDataAndUpdateMap, map, poiCbgAnalysis]);
+  }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState]);
 
   return (
     <div className="data-map">
