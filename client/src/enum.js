@@ -1,4 +1,14 @@
-export const NaicsCode = {
+export const AggregationType = {
+  AVG: 0,
+  MEDIAN: 1,
+  SUM: 2,
+};
+
+export const AttributeType = {
+  NAICS_CODE_GROUP: 0,
+};
+
+export const NaicsCodeGroup = {
   SUPERMARKETS: 0,
   GENERAL: 1,
   RESTAURANTS: 2,
@@ -13,5 +23,6 @@ export const VisualizationType = {
 };
 
 export const MetricType = {
-  DENSITY: 0,
+  VISITORS: 0,
+  DENSITY: 1,
 };

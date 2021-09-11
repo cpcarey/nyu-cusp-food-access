@@ -129,3 +129,5 @@ yarn-error.log*
 
 private/
 src/data/
+**/private/
+**/__pycache__
