@@ -1,3 +1,8 @@
+export const AggregationDirection = {
+  POI: 0,
+  HOME: 1,
+};
+
 export const AggregationType = {
   AVG: 0,
   MEDIAN: 1,

@@ -3,9 +3,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import mapboxgl from '!mapbox-gl'; // eslint-disable-line import/no-webpack-loader-syntax
 import {tokens} from 'private-tokens';
 import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
+
+import {AggregationDirection} from './enum.js';
 import * as util from './analysis/util.js';
 
 import './DataMap.css';
+
+const PATH_QUERY_CBG_POI = 'cbg/poi/q';
+const PATH_QUERY_CBG_HOME = 'cbg/home/q';
 
 mapboxgl.accessToken = tokens.mapbox;
 
@@ -18,11 +23,24 @@ export function DataMap(
   const [map, setMap] = useState(null);
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
+  const [queryPath, setQueryPath] = useState();
+
+  function getPath(queryState) {
+    switch (queryState.aggregationDirection) {
+      case AggregationDirection.POI:
+        return PATH_QUERY_CBG_POI;
+      case AggregationDirection.HOME:
+        return PATH_QUERY_CBG_HOME;
+      default:
+        throw new Error();
+    }
+  }
 
   function constructQueryUrl(queryState) {
     const attribute = 'naics_code';
+    const path = getPath(queryState);
 
-    let url = 'http://localhost:5000/q';
+    let url = `http://localhost:5000/${path}`;
     url += `?a=${attribute}`
     url += `&av=${queryState.attributeClass}`
     url += `&ds=${queryState.dateStart}`
@@ -34,6 +52,7 @@ export function DataMap(
 
   const fetchDataAndUpdateMap = useCallback(async function(queryState, cbgValueMap) {
     const url = constructQueryUrl(queryState);
+    console.log(url);
     await fetch(url)
       .then((data) => data.json())
       .then((json) => {

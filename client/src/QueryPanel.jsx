@@ -131,7 +131,7 @@ export function QueryPanel({queryState, setQueryState}) {
         <div className="panel-control dropdown">
           <div>Metric</div>
           <div className="select-container">
-            <select onChange={(e) => handleMetricTypeChange(e, queryState)}>
+            <select onChange={(e) => handleMetricTypeChange(e, queryState)} defaultValue="1">
               <option value="0">Visitor count</option>
               <option value="1">Visitor density</option>
             </select>
@@ -140,7 +140,7 @@ export function QueryPanel({queryState, setQueryState}) {
         <div className="panel-control dropdown">
           <div>Aggregation</div>
           <div className="select-container">
-            <select onChange={(e) => handleAggregationTypeChange(e, queryState)}>
+            <select onChange={(e) => handleAggregationTypeChange(e, queryState)} defaultValue="1">
               <option value="0">Average</option>
               <option value="1">Median</option>
               <option value="2">Sum</option>
