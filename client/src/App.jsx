@@ -52,6 +52,10 @@ function saveQueryStateToSession(queryState) {
 }
 
 function App() {
+  const [appState, setAppState] = useState({
+    loading: false,
+  });
+
   const [dataState, setDataState] = useState({
     cbgNormalizedValueMap: new Map(),
     cbgStandardizedValueMap: new Map(),
@@ -74,9 +78,11 @@ function App() {
         setQueryState={setQueryState}
         />
       <DataMap
+        appState={appState}
         dataState={dataState}
         mapState={mapState}
         queryState={queryState}
+        setAppState={setAppState}
         setDataState={setDataState}
         setMapState={setMapState}
         />

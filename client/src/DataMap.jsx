@@ -15,7 +15,7 @@ const PATH_QUERY_CBG_HOME = 'cbg/home/q';
 mapboxgl.accessToken = tokens.mapbox;
 
 export function DataMap(
-    {dataState, mapState, queryState, setDataState, setMapState}) {
+    {appState, dataState, mapState, queryState, setAppState, setDataState, setMapState}) {
   const mapContainerRef = useRef(null);
   const [lat] = useState(constants.INIT_LAT);
   const [lon] = useState(constants.INIT_LON);
@@ -23,6 +23,8 @@ export function DataMap(
   const [map, setMap] = useState(null);
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
+
+  const ref = useRef({appState});
 
   const getPath =
       useCallback(function(queryState) {
@@ -53,8 +55,11 @@ export function DataMap(
 
   const fetchDataAndUpdateMap =
       useCallback(async function(queryState, cbgValueMap) {
+        const {appState} = ref.current;
+
         const url = constructQueryUrl(queryState);
         console.log(url);
+        setAppState({...appState, loading: true});
         await fetch(url)
           .then((data) => data.json())
           .then((json) => {
@@ -63,8 +68,9 @@ export function DataMap(
               cbgValueMap.set(parseInt(key), response[key]);
             }
             console.debug(query);
+            setAppState({...appState, loading: false});
           });
-      }, [constructQueryUrl]);
+      }, [constructQueryUrl, setAppState]);
 
   useEffect(() => {
     setMapState({
@@ -126,8 +132,12 @@ export function DataMap(
   }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState]);
 
   return (
-    <div className="data-map">
+    <div className={appState.loading ? 'data-map loading' : 'data-map'}>
       <div ref={mapContainerRef} className="map-container" />
+      <div className="spinner">
+        <div className="spinner-inner-1"></div>
+        <div className="spinner-inner-2"></div>
+      </div>
     </div>
   );
 }
