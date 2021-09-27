@@ -23,32 +23,33 @@ export function DataMap(
   const [map, setMap] = useState(null);
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
-  const [queryPath, setQueryPath] = useState();
 
-  function getPath(queryState) {
-    switch (queryState.aggregationDirection) {
-      case AggregationDirection.POI:
-        return PATH_QUERY_CBG_POI;
-      case AggregationDirection.HOME:
-        return PATH_QUERY_CBG_HOME;
-      default:
-        throw new Error();
-    }
-  }
+  const getPath =
+      useCallback(function(queryState) {
+        switch (queryState.aggregationDirection) {
+          case AggregationDirection.POI:
+            return PATH_QUERY_CBG_POI;
+          case AggregationDirection.HOME:
+            return PATH_QUERY_CBG_HOME;
+          default:
+            throw new Error();
+        }
+      }, [queryState]);
 
-  function constructQueryUrl(queryState) {
-    const attribute = 'naics_code';
-    const path = getPath(queryState);
+  const constructQueryUrl =
+      useCallback(function(queryState) {
+        const attribute = 'naics_code';
+        const path = getPath(queryState);
 
-    let url = `http://localhost:5000/${path}`;
-    url += `?a=${attribute}`
-    url += `&av=${queryState.attributeClass}`
-    url += `&ds=${queryState.dateStart}`
-    url += `&de=${queryState.dateEnd}`
-    url += `&agg=${queryState.aggregationType}`
-    url += `&m=${queryState.metricType}`
-    return url;
-  }
+        let url = `http://localhost:5000/${path}`;
+        url += `?a=${attribute}`
+        url += `&av=${queryState.attributeClass}`
+        url += `&ds=${queryState.dateStart}`
+        url += `&de=${queryState.dateEnd}`
+        url += `&agg=${queryState.aggregationType}`
+        url += `&m=${queryState.metricType}`
+        return url;
+      }, [queryState]);
 
   const fetchDataAndUpdateMap =
       useCallback(async function(queryState, cbgValueMap) {
@@ -63,7 +64,7 @@ export function DataMap(
             }
             console.debug(query);
           });
-      }, []);
+      }, [constructQueryUrl]);
 
   useEffect(() => {
     setMapState({
