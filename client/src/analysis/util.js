@@ -79,6 +79,13 @@ export function normalizeSigma(values, sigma) {
   });
 }
 
+export function standardizeMap(map) {
+  const keys = [...map.keys()];
+  const values = keys.map((key) => map.get(key));
+  const standardizedValues = standardize(values);
+  return new Map(zip(keys, standardizedValues));
+}
+
 /**
  * @param {!Array<T, number>} map
  * @param {number} sigma

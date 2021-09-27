@@ -5,9 +5,11 @@
   "dependencies": {
     "csv-parse": "^4.16.0",
     "mapbox-gl": "^2.3.1",
+    "plotly.js": "^2.5.0",
     "private-tokens": "file:./private/tokens",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-plotly.js": "^2.5.1",
     "react-scripts": "4.0.3"
   },
   "scripts": {

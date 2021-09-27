@@ -3,12 +3,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import mapboxgl from '!mapbox-gl'; // eslint-disable-line import/no-webpack-loader-syntax
 import {tokens} from 'private-tokens';
 import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
+import * as util from './analysis/util.js';
 
 import './DataMap.css';
 
 mapboxgl.accessToken = tokens.mapbox;
 
-export function DataMap({mapState, queryState, setMapState}) {
+export function DataMap(
+    {dataState, mapState, queryState, setDataState, setMapState}) {
   const mapContainerRef = useRef(null);
   const [lat] = useState(constants.INIT_LAT);
   const [lon] = useState(constants.INIT_LON);
@@ -88,6 +90,16 @@ export function DataMap({mapState, queryState, setMapState}) {
     (async function() {
       const cbgValueMap = new Map();
       await fetchDataAndUpdateMap(queryState, cbgValueMap);
+
+      const cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
+      const cbgStandardizedValueMap = util.standardizeMap(cbgValueMap, 4.0);
+
+      setDataState({
+        ...dataState,
+        cbgNormalizedValueMap,
+        cbgStandardizedValueMap,
+        cbgValueMap,
+      })
       poiCbgAnalysis.setCbgValueMap(cbgValueMap);
     })();
   }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState]);

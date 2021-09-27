@@ -8,6 +8,16 @@ import {AggregationType, AttributeType, MetricType, NaicsCodeGroup, Visualizatio
 import './App.css';
 
 function App() {
+  const [dataState, setDataState] = useState({
+    cbgNormalizedValueMap: new Map(),
+    cbgStandardizedValueMap: new Map(),
+    cbgValueMap: new Map(),
+  });
+
+  const [mapState, setMapState] = useState({
+    hoveredCbg: null,
+  });
+
   const [queryState, setQueryState] = useState({
     aggregationType: AggregationType.AVG,
     attributeClass: NaicsCodeGroup.SUPERMARKETS,
@@ -18,10 +28,6 @@ function App() {
     visualizationType: VisualizationType.CHOROPLETH,
   });
 
-  const [mapState, setMapState] = useState({
-    hoveredCbg: null,
-  });
-
   return (
     <div className="app">
       <QueryPanel
@@ -29,11 +35,14 @@ function App() {
         setQueryState={setQueryState}
         />
       <DataMap
+        dataState={dataState}
         mapState={mapState}
         queryState={queryState}
+        setDataState={setDataState}
         setMapState={setMapState}
         />
       <ChartPanel
+        dataState={dataState}
         mapState={mapState}
         />
     </div>

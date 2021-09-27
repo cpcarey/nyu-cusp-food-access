@@ -3,6 +3,10 @@
   text-align: left;
 }
 
+.plot-container {
+  margin: 16px 0;
+}
+
 .value-row {
   display: flex;
 }
