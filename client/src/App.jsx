@@ -19,7 +19,7 @@ function App() {
   });
 
   const [queryState, setQueryState] = useState({
-    aggregationDirection: AggregationDirection.HOME,
+    aggregationDirection: AggregationDirection.POI,
     aggregationType: AggregationType.MEDIAN,
     attributeClass: NaicsCodeGroup.SUPERMARKETS,
     attributeType: AttributeType.NAICS_CODE_GROUP,

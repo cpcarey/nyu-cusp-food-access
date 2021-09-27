@@ -12,6 +12,21 @@ export function QueryPanel({queryState, setQueryState}) {
   ].filter((className) => className.length).join(' ');
   const classNameIcon = 'fas fa-cog';
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleAggregationDirectionChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      aggregationDirection: parseInt(e.target.value),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleAggregationTypeChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -19,6 +34,10 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleAttributeClassChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -26,6 +45,10 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleDateEndChange(e, queryState) {
     // Ensure start date is at least seven days before end date.
     const dateEndString = e.target.value;
@@ -45,6 +68,10 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleDateStartChange(e, queryState) {
     // Ensure end date is at least seven days after end date.
     const dateStartString = e.target.value;
@@ -64,6 +91,10 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleMetricTypeChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -75,11 +106,12 @@ export function QueryPanel({queryState, setQueryState}) {
     <div className={classNamePanel}>
       <div className="panel-controls">
         <div className="panel-control dropdown">
-          <div>Visualization</div>
+          <div>Aggregation Direction</div>
           <div className="select-container">
-            <select>
-              <option value="0">Choropleth</option>
-              <option value="1">Trip Network</option>
+            <select
+              onChange={(e) => handleAggregationDirectionChange(e, queryState)}>
+              <option value="0">POI CBG</option>
+              <option value="1">Home CBG</option>
             </select>
           </div>
         </div>

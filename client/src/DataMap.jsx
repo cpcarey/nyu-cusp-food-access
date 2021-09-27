@@ -50,19 +50,20 @@ export function DataMap(
     return url;
   }
 
-  const fetchDataAndUpdateMap = useCallback(async function(queryState, cbgValueMap) {
-    const url = constructQueryUrl(queryState);
-    console.log(url);
-    await fetch(url)
-      .then((data) => data.json())
-      .then((json) => {
-        const {query, response} = json;
-        for (const key of Object.keys(response)) {
-          cbgValueMap.set(parseInt(key), response[key]);
-        }
-        console.debug(query);
-      });
-  }, []);
+  const fetchDataAndUpdateMap =
+      useCallback(async function(queryState, cbgValueMap) {
+        const url = constructQueryUrl(queryState);
+        console.log(url);
+        await fetch(url)
+          .then((data) => data.json())
+          .then((json) => {
+            const {query, response} = json;
+            for (const key of Object.keys(response)) {
+              cbgValueMap.set(parseInt(key), response[key]);
+            }
+            console.debug(query);
+          });
+      }, []);
 
   useEffect(() => {
     setMapState({
