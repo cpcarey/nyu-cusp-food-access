@@ -14,8 +14,9 @@ const PATH_QUERY_CBG_HOME = 'cbg/home/q';
 
 mapboxgl.accessToken = tokens.mapbox;
 
-export function DataMap(
-    {appState, dataState, mapState, queryState, setAppState, setDataState, setMapState}) {
+export function DataMap({
+    appState, dataState, mapState, queryState, setAppState, setDataState,
+    setMapState}) {
   const mapContainerRef = useRef(null);
   const [lat] = useState(constants.INIT_LAT);
   const [lon] = useState(constants.INIT_LON);
