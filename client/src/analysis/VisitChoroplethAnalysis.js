@@ -187,7 +187,7 @@ export class VisitChoroplethAnalysis extends Analysis {
       properties: {
         'color': ratio > 0 ? this.colorMax : this.colorMin,
         'lineWidth': ratio ? 2 : 0,
-        'opacity': Math.abs(ratio) * 0.75,
+        'opacity': ratio ? Math.abs(ratio) * 0.55 + 0.15 : 0,
       },
     };
   }
