@@ -24,7 +24,11 @@ export function DataMap(
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
 
-  const ref = useRef({appState});
+  const ref = useRef({
+    appState,
+    dataState,
+    mapState,
+  });
 
   const getPath =
       useCallback(function(queryState) {
@@ -36,7 +40,7 @@ export function DataMap(
           default:
             throw new Error();
         }
-      }, [queryState]);
+      }, []);
 
   const constructQueryUrl =
       useCallback(function(queryState) {
@@ -51,7 +55,7 @@ export function DataMap(
         url += `&agg=${queryState.aggregationType}`
         url += `&m=${queryState.metricType}`
         return url;
-      }, [queryState]);
+      }, [getPath]);
 
   const fetchDataAndUpdateMap =
       useCallback(async function(queryState, cbgValueMap) {
@@ -59,7 +63,9 @@ export function DataMap(
 
         const url = constructQueryUrl(queryState);
         console.log(url);
+
         setAppState({...appState, loading: true});
+
         await fetch(url)
           .then((data) => data.json())
           .then((json) => {
@@ -73,11 +79,13 @@ export function DataMap(
       }, [constructQueryUrl, setAppState]);
 
   useEffect(() => {
+    const {mapState} = ref.current;
+
     setMapState({
       ...mapState,
       hoveredCbg,
     });
-  }, [hoveredCbg]);
+  }, [hoveredCbg, setMapState]);
 
   // Initialize.
   useEffect(() => {
@@ -120,6 +128,7 @@ export function DataMap(
 
       const cbgNormalizedValueMap = util.normalizeSigmaMap(cbgValueMap, 4.0);
       const cbgStandardizedValueMap = util.standardizeMap(cbgValueMap, 4.0);
+      const {dataState} = ref.current;
 
       setDataState({
         ...dataState,
@@ -129,7 +138,7 @@ export function DataMap(
       })
       poiCbgAnalysis.setCbgValueMap(cbgValueMap);
     })();
-  }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState]);
+  }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState, setDataState]);
 
   return (
     <div className={appState.loading ? 'data-map loading' : 'data-map'}>
