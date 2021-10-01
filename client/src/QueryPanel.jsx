@@ -31,10 +31,21 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleAggregationTypeChange(e, queryState) {
+  function handleSpatialAggregationTypeChange(e, queryState) {
     setQueryState({
       ...queryState,
-      aggregationType: parseInt(e.target.value),
+      spatialAggregationType: parseInt(e.target.value),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleTemporalAggregationTypeChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      temporalAggregationType: parseInt(e.target.value),
     });
   }
 
@@ -85,7 +96,7 @@ export function QueryPanel({queryState, setQueryState}) {
     const {dateStart, dateEnd} =
         validateStartDate(
             new Date(e.target.value),
-            new Date(queryState.comparisonEndDate));
+            new Date(queryState.comparisonDateEnd));
 
     setQueryState({
       ...queryState,
@@ -99,6 +110,7 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleDateEndChange(e, queryState) {
+    console.log(queryState.dateStart, e.target.value);
     const {dateStart, dateEnd} =
         validateEndDate(
             new Date(queryState.dateStart),
@@ -119,7 +131,7 @@ export function QueryPanel({queryState, setQueryState}) {
     const {dateStart, dateEnd} =
         validateStartDate(
             new Date(e.target.value),
-            new Date(queryState.endDate));
+            new Date(queryState.dateEnd));
 
     setQueryState({
       ...queryState,
@@ -282,16 +294,28 @@ export function QueryPanel({queryState, setQueryState}) {
               defaultValue={queryState.metricType}
               onChange={(e) => handleMetricTypeChange(e, queryState)}>
               <option value="0">Visitor count</option>
-              <option value="1">Visitor density</option>
+              <option value="1">High-density visitor count</option>
             </select>
           </div>
         </div>
         <div className="panel-control dropdown">
-          <div>Aggregation</div>
+          <div>Spatial Aggregation</div>
           <div className="select-container">
             <select
-              defaultValue={queryState.aggregationType}
-              onChange={(e) => handleAggregationTypeChange(e, queryState)}>
+              defaultValue={queryState.spatialAggregationType}
+              onChange={(e) => handleSpatialAggregationTypeChange(e, queryState)}>
+              <option value="0">Average</option>
+              <option value="1">Median</option>
+              <option value="2">Sum</option>
+            </select>
+          </div>
+        </div>
+        <div className="panel-control dropdown">
+          <div>Temporal Aggregation</div>
+          <div className="select-container">
+            <select
+              defaultValue={queryState.temporalAggregationType}
+              onChange={(e) => handleTemporalAggregationTypeChange(e, queryState)}>
               <option value="0">Average</option>
               <option value="1">Median</option>
               <option value="2">Sum</option>

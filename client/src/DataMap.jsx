@@ -53,7 +53,14 @@ export function DataMap({
         url += `&av=${queryState.attributeClass}`
         url += `&ds=${queryState.dateStart}`
         url += `&de=${queryState.dateEnd}`
-        url += `&agg=${queryState.aggregationType}`
+
+        if (queryState.compareDates) {
+          url += `&cds=${queryState.comparisonDateStart}`
+          url += `&cde=${queryState.comparisonDateEnd}`
+        }
+
+        url += `&aggs=${queryState.spatialAggregationType}`
+        url += `&aggt=${queryState.temporalAggregationType}`
         url += `&m=${queryState.metricType}`
         return url;
       }, [getPath]);

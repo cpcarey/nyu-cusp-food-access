@@ -3,6 +3,9 @@ from flask import Flask
 from flask_cors import CORS, cross_origin
 from flask_restful import Api, Resource, reqparse
 from google.cloud import bigquery
+from datetime import datetime
+import numpy as np
+import pandas as pd
 import os
 
 PROJECT_ID = 'project-usifood'
@@ -27,8 +30,11 @@ ATTRIBUTE_CHOICES = ('naics_code')
 
 parser = reqparse.RequestParser()
 parser.add_argument('a', choices=ATTRIBUTE_CHOICES)
-parser.add_argument('agg')
+parser.add_argument('aggs')
+parser.add_argument('aggt')
 parser.add_argument('av')
+parser.add_argument('cds')
+parser.add_argument('cde')
 parser.add_argument('ds')
 parser.add_argument('de')
 parser.add_argument('m')
@@ -80,8 +86,11 @@ class CbgHomeQuery(Resource):
         cbg_attribute = 'visitor_home_cbg_id'
 
         # Date filter.
-        date_start = args['ds']
-        date_end = args['de']
+        primary_date_start = args['ds']
+        primary_date_end = args['de']
+        comparison_date_start = args['cds']
+        comparison_date_end = args['cde']
+        compare = (comparison_date_start != None and comparison_date_end != None)
 
         # Attribute filter.
         attribute = args['a']
@@ -99,51 +108,120 @@ class CbgHomeQuery(Resource):
         filter_sqls = []
         if metric in METRIC_NAMES_HOME:
             metric = METRIC_NAMES_HOME[metric]
-            metric_sql = metric
+            metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7)'
         elif metric == MetricType.DENSITY:
             metric = 'density'
-            metric_sql = f'(({t2}.visitor_count / {t3}.device_count * 7) * {t1}.raw_visitor_counts / {t1}.area_square_feet)'
+            metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7)'
             filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
+            filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
 
         # Metric aggregation method.
-        aggregation_type = int(args['agg'])
-        metric_aggregate = f'{metric}_agg'
-        aggregation_sql = ''
-        if aggregation_type == AggregationType.SUM:
-            aggregation_sql = f'SUM({metric_sql}) AS {metric_aggregate}'
-        elif aggregation_type == AggregationType.AVG:
-            aggregation_sql = f'AVG({metric_sql}) AS {metric_aggregate}'
-        elif aggregation_type == AggregationType.MEDIAN:
-            aggregation_sql = f'fhoffa.x.median(ARRAY_AGG({metric_sql})) AS {metric_aggregate}'
+        temporal_aggregation_type = int(args['aggt'])
+        metric_aggregate = f'{metric_sql} as metric_agg'
+        temporal_aggregation_function = ''
+        if temporal_aggregation_type == AggregationType.SUM:
+            temporal_aggregation_function = 'sum'
+        elif temporal_aggregation_type == AggregationType.AVG:
+            temporal_aggregation_function = 'mean'
+        elif temporal_aggregation_type == AggregationType.MEDIAN:
+            temporal_aggregation_function = 'median'
 
-        query = ''
-        query += f'SELECT {t1}.placekey, {t2}.placekey, {t2}.visitor_home_cbg_id, {t3}.origin_census_block_group, {aggregation_sql}'
-        query += f' FROM {t1}'
-        query += f' INNER JOIN {t2}'
-        query += f'  ON {t1}.placekey = {t2}.placekey'
-        query += f'  AND {t1}.date_range_start = {t2}.date_range_start'
-        query += f' INNER JOIN {t3}'
-        query += f'  ON {t2}.visitor_home_cbg_id = {t3}.origin_census_block_group'
-        query += f' WHERE {t2}.date_range_start BETWEEN TIMESTAMP("{date_start}")'
-        query += f' AND TIMESTAMP("{date_end}") '
+        query_primary = ''
+        query_primary += f'SELECT'
+        query_primary += f' {t2}.visitor_home_cbg_id,'
+        query_primary += f' {t1}.date_range_start,'
+        query_primary += f' SUM({metric_sql})'
+        query_primary += f' FROM {t1}'
+        query_primary += f' INNER JOIN {t2}'
+        query_primary += f'  ON {t1}.placekey = {t2}.placekey'
+        query_primary += f'  AND {t1}.date_range_start = {t2}.date_range_start'
+        query_primary += f' INNER JOIN {t3}'
+        query_primary += f'  ON {t2}.visitor_home_cbg_id = {t3}.origin_census_block_group'
+        query_primary += f' WHERE {t1}.date_range_start'
+        query_primary += f'  BETWEEN TIMESTAMP("{primary_date_start}")'
+        query_primary += f'  AND TIMESTAMP("{primary_date_end}")'
         for filter_sql in filter_sqls:
-            query += filter_sql
-        query += f' {attribute_sql}'
-        query += f' GROUP BY {t1}.placekey, {t2}.placekey, {t2}.visitor_home_cbg_id, {t3}.origin_census_block_group'
+            query_primary += filter_sql
+        query_primary += f' {attribute_sql}'
+        query_primary += ' GROUP BY '
+        query_primary += f' {t2}.visitor_home_cbg_id,'
+        query_primary += f' {t1}.date_range_start'
+
+        query_compare = ''
+        query_compare += f'SELECT'
+        query_compare += f' {t2}.visitor_home_cbg_id,'
+        query_compare += f' {t1}.date_range_start,'
+        query_compare += f' SUM({metric_sql})'
+        query_compare += f' FROM {t1}'
+        query_compare += f' INNER JOIN {t2}'
+        query_compare += f'  ON {t1}.placekey = {t2}.placekey'
+        query_compare += f'  AND {t1}.date_range_start = {t2}.date_range_start'
+        query_compare += f' INNER JOIN {t3}'
+        query_compare += f'  ON {t2}.visitor_home_cbg_id = {t3}.origin_census_block_group'
+        query_compare += f' WHERE {t1}.date_range_start'
+        query_compare += f'  BETWEEN TIMESTAMP("{comparison_date_start}")'
+        query_compare += f'  AND TIMESTAMP("{comparison_date_end}")'
+        for filter_sql in filter_sqls:
+            query_compare += filter_sql
+        query_compare += f' {attribute_sql}'
+        query_compare += ' GROUP BY '
+        query_compare += f' {t2}.visitor_home_cbg_id,'
+        query_compare += f' {t1}.date_range_start'
 
         client = bigquery.Client()
         job_config = bigquery.QueryJobConfig()
-        response = client.query(query, job_config=job_config)
 
-        resultsResponse = {}
-        for row in response:
-            if row[cbg_attribute] not in resultsResponse:
-                resultsResponse[row[cbg_attribute]] = 0
-            resultsResponse[row[cbg_attribute]] += row[metric_aggregate]
+        response_primary = client.query(query_primary, job_config=job_config)
+        if compare:
+            response_compare = (
+                    client.query(query_compare, job_config=job_config))
+
+        primary_date_origin = datetime.fromisoformat(primary_date_start)
+        rows_primary = []
+        for row in response_primary:
+            row = list(row)
+            row[1] = (row[1].replace(tzinfo=None) - primary_date_origin).days
+            rows_primary.append(row)
+
+        if compare:
+            comparison_date_origin = (
+                    datetime.fromisoformat(comparison_date_start))
+            rows_compare = []
+            for row in response_compare:
+                row = list(row)
+                row[1] = (
+                        row[1].replace(tzinfo=None) -
+                        comparison_date_origin).days
+                rows_compare.append(row)
+
+        df_primary = pd.DataFrame.from_records(
+                rows_primary,
+                columns=['home_cbg', 'date_offset', 'value'])
+        df = df_primary
+
+        if compare:
+            df_compare = pd.DataFrame.from_records(
+                    rows_compare,
+                    columns=['home_cbg', 'date_offset', 'value'])
+            df = df_primary.merge(
+                    df_compare,
+                    how='inner', on=['home_cbg', 'date_offset'],
+                    suffixes=('_primary', '_comparison'))
+            df = df[df['value_primary'] > 0]
+            df = df[df['value_comparison'] > 0]
+            df['value_diff'] = df['value_primary'] - df['value_comparison']
+        else:
+            df['value_diff'] = df['value']
+
+        # Aggregate per POI over dates.
+        gdf = df.groupby(by=['home_cbg']).agg({
+            'value_diff': temporal_aggregation_function}).reset_index()
+
+        values = dict(zip(gdf['home_cbg'], gdf['value_diff']))
 
         results = {
-            'query': query,
-            'response': resultsResponse,
+            'query': query_primary,
+            'response': values,
         }
 
         return results
@@ -154,6 +232,13 @@ class CbgPoiQuery(Resource):
         attribute = args['a']
         attribute_value = args['av']
         attribute_sql = f' AND {attribute} = {attribute_value}'
+
+        # Date filter.
+        primary_date_start = args['ds']
+        primary_date_end = args['de']
+        comparison_date_start = args['cds']
+        comparison_date_end = args['cde']
+        compare = (comparison_date_start != None and comparison_date_end != None)
 
         # Metric query predicate.
         metric = int(args['m'])
@@ -167,52 +252,126 @@ class CbgPoiQuery(Resource):
             metric_sql = '(raw_visitor_counts / area_square_feet)'
             filter_sqls = ' AND area_square_feet IS NOT NULL'
 
-        # Metric aggregation method.
-        aggregation_type = int(args['agg'])
-        metric_aggregate = f'{metric}_agg'
-        aggregation_sql = ''
-        if aggregation_type == AggregationType.SUM:
-            aggregation_sql = f'SUM({metric_sql}) AS {metric_aggregate}'
-        elif aggregation_type == AggregationType.AVG:
-            aggregation_sql = f'AVG({metric_sql}) AS {metric_aggregate}'
-        elif aggregation_type == AggregationType.MEDIAN:
-            aggregation_sql = f'fhoffa.x.median(ARRAY_AGG({metric_sql})) AS {metric_aggregate}'
-
+        # Attribute filter.
         if attribute == 'naics_code':
             naics_codes = NAICS_CODES[int(attribute_value)]
             attribute_value_sql = ', '.join([str(s) for s in naics_codes])
             attribute_value_sql = f'({attribute_value_sql})'
             attribute_sql = f'AND {attribute} IN {attribute_value_sql}'
 
-        date_start = args['ds']
-        date_end = args['de']
+        # Metric aggregation method.
+        temporal_aggregation_type = int(args['aggt'])
+        temporal_aggregation_function = ''
+        if temporal_aggregation_type == AggregationType.SUM:
+            temporal_aggregation_function = 'sum'
+        elif temporal_aggregation_type == AggregationType.AVG:
+            temporal_aggregation_function = 'mean'
+        elif temporal_aggregation_type == AggregationType.MEDIAN:
+            temporal_aggregation_function = 'median'
+        spatial_aggregation_type = int(args['aggs'])
+        spatial_aggregation_function = ''
+        if spatial_aggregation_type == AggregationType.SUM:
+            spatial_aggregation_function = 'sum'
+        elif spatial_aggregation_type == AggregationType.AVG:
+            spatial_aggregation_function = 'mean'
+        elif spatial_aggregation_type == AggregationType.MEDIAN:
+            spatial_aggregation_function = 'median'
 
-        query = ''
-        query += f'SELECT poi_cbg, {aggregation_sql}'
-        query += f' FROM `{TABLE_PATH}`'
-        query += f' WHERE date_range_start BETWEEN TIMESTAMP("{date_start}")'
-        query += f' AND TIMESTAMP("{date_end}")'
+        query_primary = ''
+        query_primary += 'SELECT'
+        query_primary += ' poi_cbg,'
+        query_primary += ' placekey,'
+        query_primary += ' date_range_start AS primary_date_range_start,'
+        query_primary += f' SUM({metric_sql})'
+        query_primary += f' FROM `{TABLE_PATH}`'
+        query_primary += ' WHERE date_range_start'
+        query_primary += f'  BETWEEN TIMESTAMP("{primary_date_start}")'
+        query_primary += f'  AND TIMESTAMP("{primary_date_end}")'
         for filter_sql in filter_sqls:
-            query += filter_sql
-        query += f' {attribute_sql}'
-        query += ' GROUP BY poi_cbg'
+            query_primary += filter_sql
+        query_primary += f' {attribute_sql}'
+        query_primary += ' GROUP BY poi_cbg, placekey, primary_date_range_start'
+        query_primary += ' ORDER BY poi_cbg, placekey, primary_date_range_start'
+
+        query_compare = ''
+        query_compare += 'SELECT'
+        query_compare += ' poi_cbg,'
+        query_compare += ' placekey,'
+        query_compare += ' date_range_start AS comparison_date_range_start,'
+        query_compare += f' SUM({metric_sql})'
+        query_compare += f' FROM `{TABLE_PATH}`'
+        query_compare += ' WHERE date_range_start'
+        query_compare += f'  BETWEEN TIMESTAMP("{comparison_date_start}")'
+        query_compare += f'  AND TIMESTAMP("{comparison_date_end}")'
+        for filter_sql in filter_sqls:
+            query_compare += filter_sql
+        query_compare += f' {attribute_sql}'
+        query_compare += ' GROUP BY poi_cbg, placekey, comparison_date_range_start'
+        query_compare += ' ORDER BY poi_cbg, placekey, comparison_date_range_start'
 
         client = bigquery.Client()
         job_config = bigquery.QueryJobConfig()
-        response = client.query(query, job_config=job_config)
 
-        resultsResponse = {}
-        for row in response:
-            if row.poi_cbg not in resultsResponse:
-                resultsResponse[row.poi_cbg] = 0
-            resultsResponse[row.poi_cbg] += row[metric_aggregate]
+        response_primary = client.query(query_primary, job_config=job_config)
+        if compare:
+            response_compare = (
+                    client.query(query_compare, job_config=job_config))
+
+        primary_date_origin = datetime.fromisoformat(primary_date_start)
+        rows_primary = []
+        for row in response_primary:
+            row = list(row)
+            row[2] = (row[2].replace(tzinfo=None) - primary_date_origin).days
+            rows_primary.append(row)
+
+        if compare:
+            comparison_date_origin = (
+                    datetime.fromisoformat(comparison_date_start))
+            rows_compare = []
+            for row in response_compare:
+                row = list(row)
+                row[2] = (
+                        row[2].replace(tzinfo=None) -
+                        comparison_date_origin).days
+                rows_compare.append(row)
+
+        df_primary = pd.DataFrame.from_records(
+                rows_primary,
+                columns=['poi_cbg', 'placekey', 'date_offset', 'value'])
+        df = df_primary
+
+        if compare:
+            df_compare = pd.DataFrame.from_records(
+                    rows_compare,
+                    columns=['poi_cbg', 'placekey', 'date_offset', 'value'])
+            df = df_primary.merge(
+                    df_compare,
+                    how='inner', on=['placekey', 'poi_cbg', 'date_offset'],
+                    suffixes=('_primary', '_comparison'))
+            df = df[df['value_primary'] > 0]
+            df = df[df['value_comparison'] > 0]
+            df['value_diff'] = df['value_primary'] - df['value_comparison']
+        else:
+            df['value_diff'] = df['value']
+
+        # Aggregate per POI over dates.
+        gdf = df.groupby(by=['placekey']).agg({
+            'poi_cbg': 'first',
+            'value_diff': temporal_aggregation_function}).reset_index()
+
+        # Aggregate per CBG over POIs.
+        gdf = gdf.groupby(by=['poi_cbg']).agg({
+            'value_diff': spatial_aggregation_function}).reset_index()
+
+        values = dict(zip(gdf['poi_cbg'], gdf['value_diff']))
 
         results = {
-            'query': query,
-            'response': resultsResponse,
+            'query': query_primary,
+            'response': values,
         }
 
         return results
+
 
 api.add_resource(CbgHomeQuery, '/cbg/home/q')
 api.add_resource(CbgPoiQuery, '/cbg/poi/q')
