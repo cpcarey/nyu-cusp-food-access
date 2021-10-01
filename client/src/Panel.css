@@ -31,6 +31,12 @@
   top: 16px;
 }
 
+.panel hr {
+  margin-bottom: 12px;
+  margin-top: 12px;
+  width: 90%;
+}
+
 .panel-control {
   padding: 8px;
   text-align: left;
@@ -141,4 +147,40 @@ select {
 
 .select-container:hover::after {
   color: #fff;
+}
+
+.switch {
+  background: #222;
+  border-radius: 20px;
+  display: inline-block;
+  height: 20px;
+  position: relative;
+  transition: all 0.3s;
+  width: 40px;
+  top: 5px;
+  left: 30px;
+}
+
+.switch::after {
+  background: #fff;
+  border-radius: 50%;
+  content: '';
+  height: 18px;
+  left: 1px;
+  position: absolute;
+  top: 1px;
+  transition: all 0.3s;
+  width: 18px;
+}
+
+.switch-checkbox {
+  display: none;
+}
+
+.switch-checkbox:checked + .switch::after {
+  left: 20px;
+}
+
+.switch-checkbox:checked + .switch {
+  background: #cb85fa;
 }

@@ -12,6 +12,10 @@ export function QueryPanel({queryState, setQueryState}) {
   ].filter((className) => className.length).join(' ');
   const classNameIcon = 'fas fa-cog';
 
+  function convertDateToString(date) {
+    return date.toISOString().split('T')[0];
+  }
+
   /**
    * @param {!Event} e
    * @param {!QueryState} queryState
@@ -49,22 +53,61 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleDateEndChange(e, queryState) {
-    // Ensure start date is at least seven days before end date.
-    const dateEndString = e.target.value;
-    const dateEnd = new Date(dateEndString);
-    const dateStartMax = new Date(dateEndString);
-    dateStartMax.setDate(dateEnd.getDate() - 7);
-    let dateStart = new Date(queryState.dateStart);
-    if (dateStart > dateStartMax) {
-      dateStart = dateStartMax;
-    }
-    const dateStartString = dateStart.toISOString().split('T')[0];
+  function handleCompareDatesChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      compareDates: e.target.checked,
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleComparisonDateEndChange(e, queryState) {
+    const {dateStart, dateEnd} =
+        validateEndDate(
+            new Date(queryState.comparisonDateStart),
+            new Date(e.target.value));
 
     setQueryState({
       ...queryState,
-      dateEnd: dateEndString,
-      dateStart: dateStartString,
+      comparisonDateEnd: convertDateToString(dateEnd),
+      comparisonDateStart: convertDateToString(dateStart),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleComparisonDateStartChange(e, queryState) {
+    const {dateStart, dateEnd} =
+        validateStartDate(
+            new Date(e.target.value),
+            new Date(queryState.comparisonEndDate));
+
+    setQueryState({
+      ...queryState,
+      comparisonDateEnd: convertDateToString(dateEnd),
+      comparisonDateStart: convertDateToString(dateStart),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleDateEndChange(e, queryState) {
+    const {dateStart, dateEnd} =
+        validateEndDate(
+            new Date(queryState.dateStart),
+            new Date(e.target.value));
+
+    setQueryState({
+      ...queryState,
+      dateEnd: convertDateToString(dateEnd),
+      dateStart: convertDateToString(dateStart),
     });
   }
 
@@ -73,21 +116,15 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleDateStartChange(e, queryState) {
-    // Ensure end date is at least seven days after end date.
-    const dateStartString = e.target.value;
-    const dateStart = new Date(dateStartString);
-    const dateEndMin = new Date(dateStartString);
-    dateEndMin.setDate(dateStart.getDate() + 7);
-    let dateEnd = new Date(queryState.dateEnd);
-    if (dateEnd < dateEndMin) {
-      dateEnd = dateEndMin;
-    }
-    const dateEndString = dateEnd.toISOString().split('T')[0];
+    const {dateStart, dateEnd} =
+        validateStartDate(
+            new Date(e.target.value),
+            new Date(queryState.endDate));
 
     setQueryState({
       ...queryState,
-      dateEnd: dateEndString,
-      dateStart: dateStartString,
+      dateEnd: convertDateToString(dateEnd),
+      dateStart: convertDateToString(dateStart),
     });
   }
 
@@ -100,6 +137,30 @@ export function QueryPanel({queryState, setQueryState}) {
       ...queryState,
       metricType: parseInt(e.target.value),
     });
+  }
+
+  function validateEndDate(dateStart, dateEnd) {
+    // Ensure start date is at least seven days before end date.
+    const dateStartMax = new Date(dateEnd);
+    dateStartMax.setDate(dateEnd.getDate() - 7);
+
+    if (dateStart > dateStartMax) {
+      dateStart = dateStartMax;
+    }
+
+    return {dateStart, dateEnd};
+  }
+
+  function validateStartDate(dateStart, dateEnd) {
+    // Ensure end date is at least seven days after end date.
+    const dateEndMin = new Date(dateStart);
+    dateEndMin.setDate(dateStart.getDate() + 7);
+
+    if (dateEnd < dateEndMin) {
+      dateEnd = dateEndMin;
+    }
+
+    return {dateStart, dateEnd};
   }
 
   return (
@@ -116,6 +177,7 @@ export function QueryPanel({queryState, setQueryState}) {
             </select>
           </div>
         </div>
+        <hr />
         <div className="panel-control date-picker">
           <div>Start Date</div>
           <div>
@@ -125,7 +187,7 @@ export function QueryPanel({queryState, setQueryState}) {
               onChange={(e) => handleDateStartChange(e, queryState)}
               type="date"
               value={queryState.dateStart}
-              />
+            />
           </div>
         </div>
         <div className="panel-control date-picker">
@@ -137,9 +199,58 @@ export function QueryPanel({queryState, setQueryState}) {
               onChange={(e) => handleDateEndChange(e, queryState)}
               type="date"
               value={queryState.dateEnd}
-              />
+            />
           </div>
         </div>
+        <div className="panel-control">
+          <div>
+            <span>Compare Dates</span>
+            <input
+              checked={queryState.compareDates}
+              className="switch-checkbox"
+              id="toggle-1"
+              onChange={(e) => handleCompareDatesChange(e, queryState)}
+              type="checkbox"
+            />
+            <label
+              className="switch"
+              htmlFor="toggle-1"
+            ></label>
+          </div>
+        </div>
+        {
+          queryState.compareDates && (
+              <div className="panel-control date-picker">
+                <div>Comparison Start Date</div>
+                <div>
+                  <input
+                    max="2021-03-01"
+                    min="2019-03-01"
+                    onChange={(e) => handleComparisonDateStartChange(e, queryState)}
+                    type="date"
+                    value={queryState.comparisonDateStart}
+                  />
+                </div>
+              </div>
+          )
+        }
+        {
+          queryState.compareDates && (
+              <div className="panel-control date-picker">
+                <div>Comparison End Date</div>
+                <div>
+                  <input
+                    max="2021-03-01"
+                    min="2019-03-02"
+                    onChange={(e) => handleComparisonDateEndChange(e, queryState)}
+                    type="date"
+                    value={queryState.comparisonDateEnd}
+                  />
+                </div>
+              </div>
+          )
+        }
+        <hr />
         <div className="panel-control dropdown">
           <div>Attribute</div>
           <div className="select-container">
@@ -163,6 +274,7 @@ export function QueryPanel({queryState, setQueryState}) {
             </select>
           </div>
         </div>
+        <hr />
         <div className="panel-control dropdown">
           <div>Metric</div>
           <div className="select-container">
