@@ -294,7 +294,8 @@ export function QueryPanel({queryState, setQueryState}) {
               defaultValue={queryState.metricType}
               onChange={(e) => handleMetricTypeChange(e, queryState)}>
               <option value="0">Visitor count</option>
-              <option value="1">High-density visitor count</option>
+              <option value="1">Density</option>
+              <option value="2">High-density visitor count</option>
             </select>
           </div>
         </div>

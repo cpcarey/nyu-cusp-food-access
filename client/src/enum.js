@@ -30,4 +30,5 @@ export const VisualizationType = {
 export const MetricType = {
   VISITORS: 0,
   DENSITY: 1,
+  HIGH_DENSITY_VISIT_VISITORS: 2,
 };

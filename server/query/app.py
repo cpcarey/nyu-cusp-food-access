@@ -55,6 +55,7 @@ class NaicsCodeGroup(IntEnum):
 class MetricType(IntEnum):
     RAW_VISITOR_COUNTS = 0
     DENSITY = 1
+    HIGH_DENSITY_VISITOR_COUNTS = 2
 
 METRIC_NAMES_POI = {
     MetricType.RAW_VISITOR_COUNTS: 'raw_visitor_counts',
@@ -112,6 +113,10 @@ class CbgHomeQuery(Resource):
         elif metric == MetricType.DENSITY:
             metric = 'density'
             metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7)'
+            filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
+            filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
+        elif metric == MetricType.HIGH_DENSITY_VISITS:
+            metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7) * ({t1}.raw_visitor_counts / {t1}.area_square_feet)'
             filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
             filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
 
