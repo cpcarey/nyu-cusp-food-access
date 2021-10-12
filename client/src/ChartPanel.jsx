@@ -4,18 +4,29 @@ import Plot from 'react-plotly.js';
 import './ChartPanel.css';
 import './Panel.css';
 
-import cbgMedianIncomeJson from './data/cbg_median_income.json';
+import censusJson from './data/cbg_attr_and_cluster.json';
+const incomeJson = censusJson['Median Household Income'];
+const clusterJson = censusJson['Cluster'];
 
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
 
-export function ChartPanel({dataState, mapState}) {
+const COLORS = [
+  '#e41a1b',
+  '#377eb8',
+  '#4eaf4a',
+  '#984ea4',
+  '#ff7f00',
+  '#ffff33',
+];
+
+export function ChartPanel({dataState, hoverState}) {
+  const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
   const [hoveredIncome, setHoveredIncome] = useState(0);
   const [hoveredIncomeValue, setHoveredIncomeValue] = useState(0);
   const [hoveredStdValue, setHoveredStdValue] = useState(0);
   const [hoveredValue, setHoveredValue] = useState('');
-  const [keys, setKeys] = useState([]);
   const [incomeKeys, setIncomeKeys] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [incomeValues, setIncomeValues] = useState([]);
@@ -32,24 +43,24 @@ export function ChartPanel({dataState, mapState}) {
 
   // Set hovered CBG value.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredValue('');
-    } else if (mapState.hoveredCbg.value <= 1) {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(4));
-    } else if (mapState.hoveredCbg.value <= 10) {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(3));
+    } else if (hoverState.cbg.value <= 1) {
+      setHoveredValue(hoverState.cbg.value.toFixed(4));
+    } else if (hoverState.cbg.value <= 10) {
+      setHoveredValue(hoverState.cbg.value.toFixed(3));
     } else {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(2));
+      setHoveredValue(hoverState.cbg.value.toFixed(2));
     }
-  }, [mapState, setHoveredValue]);
+  }, [hoverState, setHoveredValue]);
 
+  // Set hovered CBG in income plot.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredIncome(0);
       setHoveredIncomeValue(0);
     } else {
-      const incomeJson = cbgMedianIncomeJson['median_household_income'];
-      const key = mapState.hoveredCbg.id;
+      const key = hoverState.cbg.id;
       const x = incomeJson[key];
       const y = dataState.cbgValueMap.get(key);
       if (x === null || y === null) {
@@ -61,31 +72,33 @@ export function ChartPanel({dataState, mapState}) {
       setHoveredIncomeValue(dataState.cbgValueMap.get(key));
     }
   }, [
-    dataState, incomes, incomeValues, mapState, setHoveredIncome,
+    dataState, hoverState, incomes, incomeValues, setHoveredIncome,
     setHoveredIncomeValue,
   ]);
 
+  // Set hovered CBG in distribution plot.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredStdValue(0);
     } else {
-      const cbgId = mapState.hoveredCbg.id;
+      const cbgId = hoverState.cbg.id;
       const stdValue = dataState.cbgStandardizedValueMap.get(cbgId);
-      setHoveredStdValue(Math.min(Math.max(stdValue || 0, SIGMA_MIN), SIGMA_MAX));
+      setHoveredStdValue(
+          Math.min(Math.max(stdValue || 0, SIGMA_MIN), SIGMA_MAX));
     }
-  }, [dataState, mapState, setHoveredStdValue]);
+  }, [dataState, hoverState, setHoveredStdValue]);
 
-  // Set keys.
+  // Set values.
   useEffect(() => {
     const keys = [...dataState.cbgStandardizedValueMap.keys()];
-    setKeys(keys);
     setValues([...dataState.cbgStandardizedValueMap.values()]);
-
-    const incomeJson = cbgMedianIncomeJson['median_household_income'];
 
     const incomeKeys = [];
     const incomes = [];
     const incomeValues = [];
+
+    const clusterSums = [0, 0, 0, 0, 0, 0];
+    const clusterCounts = [0, 0, 0, 0, 0, 0];
 
     for (const key of keys) {
       const x = incomeJson[key];
@@ -97,20 +110,31 @@ export function ChartPanel({dataState, mapState}) {
         incomes.push(x);
         incomeValues.push(y);
       }
+
+      const value = dataState.cbgStandardizedValueMap.get(key) || 0;
+      const clusterIndex = clusterJson[key];
+      clusterSums[clusterIndex] += value;
+      clusterCounts[clusterIndex]++;
     }
+
+    const clusterMeans = clusterSums.map((sum, i) => sum / clusterCounts[i]);
 
     setIncomes(incomes);
     setIncomeKeys(incomeKeys);
     setIncomeValues(incomeValues);
 
-  }, [dataState, setIncomeKeys, setIncomes, setIncomeValues, setKeys, setValues]);
+    setClusterValues(clusterMeans);
+  }, [
+    dataState, setClusterValues, setIncomeKeys, setIncomes, setIncomeValues,
+    setValues,
+  ]);
 
   return (
     <div className={classNamePanel}>
       <div className="panel-content">
         <div className="value-row">
           <strong>CBG:</strong>
-          <span>{mapState.hoveredCbg?.id}</span>
+          <span>{hoverState.cbg?.id}</span>
         </div>
         <div className="value-row">
           <strong>Value:</strong>
@@ -128,12 +152,12 @@ export function ChartPanel({dataState, mapState}) {
                 type: 'histogram',
                 x: values,
                 marker: {
-                  color: '#8900e1',
+                  color: '#c466ff',
                 },
               },
             ]}
             layout={{
-              height: 80,
+              height: 98,
               paper_bgcolor: 'transparent',
               plot_bgcolor: 'transparent',
               width: 196,
@@ -225,6 +249,40 @@ export function ChartPanel({dataState, mapState}) {
               xaxis: {
                 gridcolor: 'transparent',
                 zerolinecolor: '#999',
+              },
+              yaxis: {
+                gridcolor: 'transparent',
+                zerolinecolor: '#999',
+              },
+            }}
+          />
+
+          <Plot
+            data={[
+              {
+                type: 'bar',
+                marker: {
+                  color: COLORS,
+                },
+                x: clusterValues.map((c, i) => i),
+                y: clusterValues,
+              },
+            ]}
+            layout={{
+              height: 98,
+              paper_bgcolor: 'transparent',
+              plot_bgcolor: 'transparent',
+              width: 196,
+              margin: {
+                b: 0,
+                l: 0,
+                pad: 0,
+                r: 0,
+                t: 0,
+              },
+              xaxis: {
+                gridcolor: 'transparent',
+                zerolinecolor: 'transparent',
               },
               yaxis: {
                 gridcolor: 'transparent',

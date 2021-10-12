@@ -13,6 +13,11 @@ export const AttributeType = {
   NAICS_CODE_GROUP: 0,
 };
 
+export const MapPlotType = {
+  CHOROPLETH: 0,
+  CLUSTER: 1,
+};
+
 export const NaicsCodeGroup = {
   SUPERMARKETS: 0,
   GENERAL: 1,

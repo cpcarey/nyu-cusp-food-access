@@ -2,9 +2,10 @@ import * as constants from 'constants.js';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import mapboxgl from '!mapbox-gl'; // eslint-disable-line import/no-webpack-loader-syntax
 import {tokens} from 'private-tokens';
-import {VisitChoroplethAnalysis} from 'analysis/VisitChoroplethAnalysis.js';
+import {ChoroplethAnalysis} from 'analysis/ChoroplethAnalysis.js';
+import {ClusterAnalysis} from 'analysis/ClusterAnalysis.js';
 
-import {AggregationDirection} from './enum.js';
+import {AggregationDirection, MapPlotType} from './enum.js';
 import * as util from './analysis/util.js';
 
 import './DataMap.css';
@@ -15,21 +16,28 @@ const PATH_QUERY_CBG_HOME = 'cbg/home/q';
 mapboxgl.accessToken = tokens.mapbox;
 
 export function DataMap({
-    appState, dataState, mapState, queryState, setAppState, setDataState,
-    setMapState}) {
+    appState, dataState, hoverState, mapState, queryState, setAppState,
+    setDataState, setHoverState, setMapState}) {
   const mapContainerRef = useRef(null);
   const [lat] = useState(constants.INIT_LAT);
   const [lon] = useState(constants.INIT_LON);
   const [hoveredCbg, setHoveredCbg] = useState(null);
   const [map, setMap] = useState(null);
+  const [mapPlotType, setMapPlotType] = useState(MapPlotType.CHOROPLETH);
+
+  const [debounce, setDebounce] = useState(0);
+
   const [poiCbgAnalysis, setPoiCbgAnalysis] = useState(null);
   const [zoom] = useState(constants.INIT_ZOOM);
 
   const ref = useRef({
     appState,
     dataState,
+    hoverState,
     mapState,
   });
+
+  const debounceRef = useRef(debounce);
 
   const getPath =
       useCallback(function(queryState) {
@@ -86,19 +94,50 @@ export function DataMap({
           });
       }, [constructQueryUrl, setAppState]);
 
+  function handleMapPlotTypeChange(e) {
+    setMapPlotType(parseInt(e.target.value));
+  }
+
+  useEffect(() => {
+    debounceRef.current = debounce;
+  }, [debounce]);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    const a = setTimeout(() => {
+      const {hoverState} = ref.current;
+
+      setHoverState({
+        ...hoverState,
+        cbg: hoveredCbg,
+      });
+    }, 5);
+    setDebounce(a);
+  }, [hoveredCbg, setDebounce, setHoverState]);
+
   useEffect(() => {
     const {mapState} = ref.current;
 
+    console.log('set map to ', mapPlotType);
     setMapState({
       ...mapState,
-      hoveredCbg,
+      plotType: mapPlotType,
     });
-  }, [hoveredCbg, setMapState]);
+  }, [mapPlotType, setMapState]);
 
   // Initialize.
   useEffect(() => {
-    setPoiCbgAnalysis(new VisitChoroplethAnalysis(new Map(), setHoveredCbg));
-  }, []);
+    switch (mapState.plotType) {
+      case MapPlotType.CHOROPLETH:
+        setPoiCbgAnalysis(new ChoroplethAnalysis(new Map(), setHoveredCbg));
+        break;
+      case MapPlotType.CLUSTER:
+        setPoiCbgAnalysis(new ClusterAnalysis(new Map(), setHoveredCbg));
+        break;
+      default:
+        return;
+    }
+  }, [mapState.plotType, setPoiCbgAnalysis]);
 
   // Initialize map.
   useEffect(() => {
@@ -117,7 +156,7 @@ export function DataMap({
 
   // Apply analysis to map.
   useEffect(() => {
-    if (!map) {
+    if (!map || !poiCbgAnalysis) {
       return;
     }
 
@@ -126,10 +165,6 @@ export function DataMap({
 
   // Query data for analysis.
   useEffect(() => {
-    if (!map) {
-      return;
-    }
-
     (async function() {
       const cbgValueMap = new Map();
       await fetchDataAndUpdateMap(queryState, cbgValueMap);
@@ -144,9 +179,14 @@ export function DataMap({
         cbgStandardizedValueMap,
         cbgValueMap,
       })
-      poiCbgAnalysis.setCbgValueMap(cbgValueMap);
     })();
-  }, [fetchDataAndUpdateMap, map, poiCbgAnalysis, queryState, setDataState]);
+  }, [fetchDataAndUpdateMap, queryState, setDataState]);
+
+  useEffect(() => {
+    if (poiCbgAnalysis) {
+      poiCbgAnalysis.setCbgValueMap(dataState.cbgValueMap);
+    }
+  }, [dataState, poiCbgAnalysis]);
 
   return (
     <div className={appState.loading ? 'data-map loading' : 'data-map'}>
@@ -154,6 +194,28 @@ export function DataMap({
       <div className="spinner">
         <div className="spinner-inner-1"></div>
         <div className="spinner-inner-2"></div>
+      </div>
+      <div className="map-controls">
+        <div>
+          <input
+            checked={mapState.plotType === MapPlotType.CHOROPLETH}
+            id="map-plot-type-0"
+            name="map-plot-type"
+            onChange={(e) => handleMapPlotTypeChange(e, mapState)}
+            type="radio"
+            value={MapPlotType.CHOROPLETH}
+            />
+          <label htmlFor="map-plot-type-0">Choropleth</label>
+          <input
+            checked={mapState.plotType === MapPlotType.CLUSTER}
+            id="map-plot-type-1"
+            name="map-plot-type"
+            onChange={(e) => handleMapPlotTypeChange(e, mapState)}
+            type="radio"
+            value={MapPlotType.CLUSTER}
+            />
+          <label htmlFor="map-plot-type-1">Cluster</label>
+        </div>
       </div>
     </div>
   );

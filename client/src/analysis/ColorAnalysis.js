@@ -2,32 +2,33 @@ import cbgData from 'data/nyc_cbgs.json';
 import {Analysis} from 'analysis/Analysis';
 import * as util from 'analysis/util';
 
-const DEFAULT_COLOR_MAX = '#ff2200';
-const DEFAULT_COLOR_MIN = '#00adff';
 const DEFAULT_ID = 'cbg1';
 
-export class VisitChoroplethAnalysis extends Analysis {
+export class ColorAnalysis extends Analysis {
   /**
    * @param {!Map<string, number>} cbgValueMap
    * @param {function({id: number, value: number}):void} setHoveredCbg
-   * @param {!string} colorMax
-   * @param {!string} colorMin
+   * @param {function(number):number} getColor Function which returns a polygon
+   *     color for a given CBG ID
+   * @param {function(number):number} getLineWidth Function which returns a
+   *     polygon line width for a given CBG ID
+   * @param {function(number):boolean} getLineWidth Function which returns
+   *     whether the given CBG ID has data
    * @param {string} id Analysis ID to use within Mapbox
    * @override
    */
   constructor(
-      cbgValueMap, setHoveredCbg, colorMax=DEFAULT_COLOR_MAX,
-      colorMin=DEFAULT_COLOR_MIN, id=DEFAULT_ID) {
+      cbgValueMap, setHoveredCbg, getColor, getLineWidth, getOpacity, hasData,
+      id=DEFAULT_ID) {
     super(cbgValueMap);
 
     /** @type {string} */
-    this.colorMax = colorMax;
-
-    /** @type {string} */
-    this.colorMin = colorMin;
-
-    /** @type {string} */
     this.id = id;
+
+    this.getColor = getColor;
+    this.getLineWidth = getLineWidth;
+    this.getOpacity = getOpacity;
+    this.hasData = hasData;
 
     /** @type {string} */
     this.cbgFillLayerId = `${this.id}-fill`;
@@ -129,7 +130,10 @@ export class VisitChoroplethAnalysis extends Analysis {
           this.setHoveredCbg({id, value: this.cbgValueMap.get(id)});
         }
       }
-      map.getCanvas().style.cursor = (hover && id && this.getRatio_(id)) ? 'pointer' : 'grab';
+      map.getCanvas().style.cursor =
+          (hover && id && this.hasData(id, this.cbgNormalizedValueMap))
+              ? 'pointer'
+              : 'grab';
     }
 
     map.on('mousemove', this.cbgFillLayerId, (e) => {
@@ -164,19 +168,12 @@ export class VisitChoroplethAnalysis extends Analysis {
     }
   }
 
-  getRatio_(cbgId) {
-    return this.cbgNormalizedValueMap.has(cbgId)
-            ? (this.cbgNormalizedValueMap.get(cbgId) - 0.5) * 2
-            : 0;
-  }
-
   /**
    * @param {string} cbgId
    * @return {!GeoJson.Feature}
    * @private
    */
   convertCoordVisitToMultiPolygonFeature_(cbgId) {
-    const ratio = this.getRatio_(cbgId);
     return {
       id: cbgId,
       type: 'Feature',
@@ -185,9 +182,9 @@ export class VisitChoroplethAnalysis extends Analysis {
         coordinates: this.cbgIdToPolygonsMap.get(cbgId),
       },
       properties: {
-        'color': ratio > 0 ? this.colorMax : this.colorMin,
-        'lineWidth': ratio ? 2 : 0,
-        'opacity': ratio ? Math.abs(ratio) * 0.55 + 0.15 : 0,
+        'color': this.getColor(cbgId, this.cbgNormalizedValueMap),
+        'lineWidth': this.getLineWidth(cbgId, this.cbgNormalizedValueMap),
+        'opacity': this.getOpacity(cbgId, this.cbgNormalizedValueMap),
       },
     };
   }
