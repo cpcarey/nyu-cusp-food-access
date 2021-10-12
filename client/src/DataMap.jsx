@@ -62,6 +62,10 @@ export function DataMap({
         url += `&ds=${queryState.dateStart}`
         url += `&de=${queryState.dateEnd}`
 
+        if (queryState.compareAttributeClasses) {
+          url += `&cav=${queryState.comparisonAttributeClass}`
+        }
+
         if (queryState.compareDates) {
           url += `&cds=${queryState.comparisonDateStart}`
           url += `&cde=${queryState.comparisonDateEnd}`

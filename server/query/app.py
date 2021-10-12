@@ -33,6 +33,7 @@ parser.add_argument('a', choices=ATTRIBUTE_CHOICES)
 parser.add_argument('aggs')
 parser.add_argument('aggt')
 parser.add_argument('av')
+parser.add_argument('cav')
 parser.add_argument('cds')
 parser.add_argument('cde')
 parser.add_argument('ds')
@@ -93,15 +94,28 @@ class CbgHomeQuery(Resource):
         comparison_date_end = args['cde']
         compare = (comparison_date_start != None and comparison_date_end != None)
 
+
         # Attribute filter.
-        attribute = args['a']
-        attribute_value = args['av']
-        attribute_sql = f' AND {attribute} = {attribute_value}'
-        if attribute == 'naics_code':
-            naics_codes = NAICS_CODES[int(attribute_value)]
-            attribute_value_sql = ', '.join([str(s) for s in naics_codes])
-            attribute_value_sql = f'({attribute_value_sql})'
-            attribute_sql = f'AND {attribute} IN {attribute_value_sql}'
+        attr = args['a']
+        attr_value = args['av']
+        attr_sql = f' AND {attr} = {attr_value}'
+        if attr == 'naics_code':
+            naics_codes = NAICS_CODES[int(attr_value)]
+            attr_value_sql = ', '.join([str(s) for s in naics_codes])
+            attr_value_sql = f'({attr_value_sql})'
+            attr_sql = f'AND {attr} IN {attr_value_sql}'
+
+        # Comparison attribute filter.
+        comparison_attr_value = args['cav']
+        compare_attr_classes = comparison_attr_value != None
+        if compare_attr_classes:
+            # all_values = []
+            # attr_value_sql = ''
+            # for naics_codes in NAICS_CODES.values():
+                # all_values += [str(s) for s in naics_codes]
+            # attr_value_sql += ', '.join(all_values)
+            # attr_value_sql = f'({attr_value_sql})'
+            attr_sql = ''#f'AND {attr} IN {attr_value_sql}'
 
         # Metric query predicate.
         metric = int(args['m'])
@@ -136,6 +150,8 @@ class CbgHomeQuery(Resource):
         query_primary += f' {t2}.visitor_home_cbg_id,'
         query_primary += f' {t1}.date_range_start,'
         query_primary += f' SUM({metric_sql})'
+        if compare_attr_classes:
+            query_primary += f', {attr}'
         query_primary += f' FROM {t1}'
         query_primary += f' INNER JOIN {t2}'
         query_primary += f'  ON {t1}.placekey = {t2}.placekey'
@@ -147,10 +163,12 @@ class CbgHomeQuery(Resource):
         query_primary += f'  AND TIMESTAMP("{primary_date_end}")'
         for filter_sql in filter_sqls:
             query_primary += filter_sql
-        query_primary += f' {attribute_sql}'
+        query_primary += f' {attr_sql}'
         query_primary += ' GROUP BY '
         query_primary += f' {t2}.visitor_home_cbg_id,'
         query_primary += f' {t1}.date_range_start'
+        if compare_attr_classes:
+            query_primary += f', {attr}'
 
         query_compare = ''
         query_compare += f'SELECT'
@@ -168,7 +186,7 @@ class CbgHomeQuery(Resource):
         query_compare += f'  AND TIMESTAMP("{comparison_date_end}")'
         for filter_sql in filter_sqls:
             query_compare += filter_sql
-        query_compare += f' {attribute_sql}'
+        query_compare += f' {attr_sql}'
         query_compare += ' GROUP BY '
         query_compare += f' {t2}.visitor_home_cbg_id,'
         query_compare += f' {t1}.date_range_start'
@@ -201,13 +219,13 @@ class CbgHomeQuery(Resource):
 
         df_primary = pd.DataFrame.from_records(
                 rows_primary,
-                columns=['home_cbg', 'date_offset', 'value'])
+                columns=['home_cbg', 'date_offset', 'value', 'naics_code'])
         df = df_primary
 
         if compare:
             df_compare = pd.DataFrame.from_records(
                     rows_compare,
-                    columns=['home_cbg', 'date_offset', 'value'])
+                    columns=['home_cbg', 'date_offset', 'value', 'naics_code'])
             df = df_primary.merge(
                     df_compare,
                     how='inner', on=['home_cbg', 'date_offset'],
@@ -224,6 +242,25 @@ class CbgHomeQuery(Resource):
 
         values = dict(zip(gdf['home_cbg'], gdf['value_diff']))
 
+        if compare_attr_classes:
+            codes_1 = NAICS_CODES[int(attr_value)]
+            codes_2 = NAICS_CODES[int(comparison_attr_value)]
+            gdf_1 = df[df['naics_code'].isin(codes_1)].groupby(by=['home_cbg']).agg({
+                'value_diff': temporal_aggregation_function}).reset_index()
+            gdf_2 = df[df['naics_code'].isin(codes_2)].groupby(by=['home_cbg']).agg({
+                'value_diff': temporal_aggregation_function}).reset_index()
+            gdf_diff = (gdf_1 / gdf) - (gdf_2 / gdf)
+            gdf_diff['home_cbg'] = gdf['home_cbg']
+            gdf_1['value_diff'] = gdf_1['value_diff'] / gdf['value_diff']
+            gdf_2['value_diff'] = gdf_2['value_diff'] / gdf['value_diff']
+            gdf_diff = gdf_1
+            gdf_diff['value_diff'] = gdf_1['value_diff'] - gdf_2['value_diff']
+            print(gdf_1[['home_cbg', 'value_diff']])
+            print(gdf_2[['home_cbg', 'value_diff']])
+            print(gdf_diff[['home_cbg', 'value_diff']])
+            gdf_diff = gdf_diff.dropna(subset=['value_diff'])
+            values = dict(zip(gdf['home_cbg'], gdf_diff['value_diff']))
+
         results = {
             'query': query_primary,
             'response': values,
@@ -235,8 +272,8 @@ class CbgPoiQuery(Resource):
     def get(self):
         args = parser.parse_args()
         attribute = args['a']
-        attribute_value = args['av']
-        attribute_sql = f' AND {attribute} = {attribute_value}'
+        attr_value = args['av']
+        attr_sql = f' AND {attribute} = {attr_value}'
 
         # Date filter.
         primary_date_start = args['ds']
@@ -259,10 +296,10 @@ class CbgPoiQuery(Resource):
 
         # Attribute filter.
         if attribute == 'naics_code':
-            naics_codes = NAICS_CODES[int(attribute_value)]
-            attribute_value_sql = ', '.join([str(s) for s in naics_codes])
-            attribute_value_sql = f'({attribute_value_sql})'
-            attribute_sql = f'AND {attribute} IN {attribute_value_sql}'
+            naics_codes = NAICS_CODES[int(attr_value)]
+            attr_value_sql = ', '.join([str(s) for s in naics_codes])
+            attr_value_sql = f'({attr_value_sql})'
+            attr_sql = f'AND {attribute} IN {attr_value_sql}'
 
         # Metric aggregation method.
         temporal_aggregation_type = int(args['aggt'])
@@ -294,7 +331,7 @@ class CbgPoiQuery(Resource):
         query_primary += f'  AND TIMESTAMP("{primary_date_end}")'
         for filter_sql in filter_sqls:
             query_primary += filter_sql
-        query_primary += f' {attribute_sql}'
+        query_primary += f' {attr_sql}'
         query_primary += ' GROUP BY poi_cbg, placekey, primary_date_range_start'
         query_primary += ' ORDER BY poi_cbg, placekey, primary_date_range_start'
 
@@ -310,7 +347,7 @@ class CbgPoiQuery(Resource):
         query_compare += f'  AND TIMESTAMP("{comparison_date_end}")'
         for filter_sql in filter_sqls:
             query_compare += filter_sql
-        query_compare += f' {attribute_sql}'
+        query_compare += f' {attr_sql}'
         query_compare += ' GROUP BY poi_cbg, placekey, comparison_date_range_start'
         query_compare += ' ORDER BY poi_cbg, placekey, comparison_date_range_start'
 

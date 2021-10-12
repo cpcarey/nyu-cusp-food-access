@@ -64,10 +64,32 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
+  function handleCompareAttributeClassesChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      compareAttributeClasses: e.target.checked,
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleCompareDatesChange(e, queryState) {
     setQueryState({
       ...queryState,
       compareDates: e.target.checked,
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleComparisonAttributeClassChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      comparisonAttributeClass: parseInt(e.target.value),
     });
   }
 
@@ -285,6 +307,41 @@ export function QueryPanel({queryState, setQueryState}) {
             </select>
           </div>
         </div>
+        <div className="panel-control">
+          <div>
+            <span>Compare Classes</span>
+            <input
+              checked={queryState.compareAttributeClasses}
+              className="switch-checkbox"
+              id="toggle-2"
+              onChange={(e) => handleCompareAttributeClassesChange(e, queryState)}
+              type="checkbox"
+            />
+            <label
+              className="switch"
+              htmlFor="toggle-2"
+            ></label>
+          </div>
+        </div>
+        {
+          queryState.compareAttributeClasses && (
+              <div className="panel-control dropdown">
+                <div>Comparison Attr. Class</div>
+                <div className="select-container">
+                  <select
+                    defaultValue={queryState.comparisonAttributeClass}
+                    onChange={(e) => handleComparisonAttributeClassChange(e, queryState)}>
+                    <option value="0">Supermarkets</option>
+                    <option value="1">General Stores</option>
+                    <option value="2">Restaurants</option>
+                    <option value="3">Community Food Services</option>
+                    <option value="4">Supplement Stores</option>
+                    <option value="5">Tobacco & Liquor Stores</option>
+                  </select>
+                </div>
+              </div>
+          )
+        }
         <hr />
         <div className="panel-control dropdown">
           <div>Metric</div>
