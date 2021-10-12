@@ -11,7 +11,16 @@ const clusterJson = censusJson['Cluster'];
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
 
-export function ChartPanel({dataState, mapState}) {
+const COLORS = [
+  '#e41a1b',
+  '#377eb8',
+  '#4eaf4a',
+  '#984ea4',
+  '#ff7f00',
+  '#ffff33',
+];
+
+export function ChartPanel({dataState, hoverState}) {
   const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
   const [hoveredIncome, setHoveredIncome] = useState(0);
@@ -21,7 +30,6 @@ export function ChartPanel({dataState, mapState}) {
   const [incomeKeys, setIncomeKeys] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [incomeValues, setIncomeValues] = useState([]);
-  const [keys, setKeys] = useState([]);
   const [values, setValues] = useState([]);
 
   const classNamePanel = [
@@ -35,24 +43,24 @@ export function ChartPanel({dataState, mapState}) {
 
   // Set hovered CBG value.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredValue('');
-    } else if (mapState.hoveredCbg.value <= 1) {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(4));
-    } else if (mapState.hoveredCbg.value <= 10) {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(3));
+    } else if (hoverState.cbg.value <= 1) {
+      setHoveredValue(hoverState.cbg.value.toFixed(4));
+    } else if (hoverState.cbg.value <= 10) {
+      setHoveredValue(hoverState.cbg.value.toFixed(3));
     } else {
-      setHoveredValue(mapState.hoveredCbg.value.toFixed(2));
+      setHoveredValue(hoverState.cbg.value.toFixed(2));
     }
-  }, [mapState, setHoveredValue]);
+  }, [hoverState, setHoveredValue]);
 
   // Set hovered CBG in income plot.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredIncome(0);
       setHoveredIncomeValue(0);
     } else {
-      const key = mapState.hoveredCbg.id;
+      const key = hoverState.cbg.id;
       const x = incomeJson[key];
       const y = dataState.cbgValueMap.get(key);
       if (x === null || y === null) {
@@ -64,26 +72,25 @@ export function ChartPanel({dataState, mapState}) {
       setHoveredIncomeValue(dataState.cbgValueMap.get(key));
     }
   }, [
-    dataState, incomes, incomeValues, mapState, setHoveredIncome,
+    dataState, hoverState, incomes, incomeValues, setHoveredIncome,
     setHoveredIncomeValue,
   ]);
 
   // Set hovered CBG in distribution plot.
   useEffect(() => {
-    if (mapState.hoveredCbg === null) {
+    if (hoverState.cbg === null) {
       setHoveredStdValue(0);
     } else {
-      const cbgId = mapState.hoveredCbg.id;
+      const cbgId = hoverState.cbg.id;
       const stdValue = dataState.cbgStandardizedValueMap.get(cbgId);
       setHoveredStdValue(
           Math.min(Math.max(stdValue || 0, SIGMA_MIN), SIGMA_MAX));
     }
-  }, [dataState, mapState, setHoveredStdValue]);
+  }, [dataState, hoverState, setHoveredStdValue]);
 
   // Set values.
   useEffect(() => {
     const keys = [...dataState.cbgStandardizedValueMap.keys()];
-    setKeys(keys);
     setValues([...dataState.cbgStandardizedValueMap.values()]);
 
     const incomeKeys = [];
@@ -119,7 +126,7 @@ export function ChartPanel({dataState, mapState}) {
     setClusterValues(clusterMeans);
   }, [
     dataState, setClusterValues, setIncomeKeys, setIncomes, setIncomeValues,
-    setKeys, setValues,
+    setValues,
   ]);
 
   return (
@@ -127,7 +134,7 @@ export function ChartPanel({dataState, mapState}) {
       <div className="panel-content">
         <div className="value-row">
           <strong>CBG:</strong>
-          <span>{mapState.hoveredCbg?.id}</span>
+          <span>{hoverState.cbg?.id}</span>
         </div>
         <div className="value-row">
           <strong>Value:</strong>
@@ -255,7 +262,7 @@ export function ChartPanel({dataState, mapState}) {
               {
                 type: 'bar',
                 marker: {
-                  color: '#c466ff',
+                  color: COLORS,
                 },
                 x: clusterValues.map((c, i) => i),
                 y: clusterValues,

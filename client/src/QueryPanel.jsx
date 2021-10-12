@@ -110,7 +110,6 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleDateEndChange(e, queryState) {
-    console.log(queryState.dateStart, e.target.value);
     const {dateStart, dateEnd} =
         validateEndDate(
             new Date(queryState.dateStart),

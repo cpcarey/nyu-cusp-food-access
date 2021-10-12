@@ -3,7 +3,10 @@ import {ChartPanel} from 'ChartPanel.jsx';
 import {DataMap} from 'DataMap.jsx';
 import {QueryPanel} from 'QueryPanel.jsx';
 
-import {AggregationDirection, AggregationType, AttributeType, MetricType, NaicsCodeGroup, VisualizationType} from 'enum.js';
+import {
+  AggregationDirection, AggregationType, AttributeType, MapPlotType,
+  MetricType, NaicsCodeGroup, VisualizationType,
+} from 'enum.js';
 
 import './App.css';
 
@@ -70,9 +73,14 @@ function App() {
     cbgValueMap: new Map(),
   });
 
-  const [mapState, setMapState] = useState({
-    hoveredCbg: null,
+  const [hoverState, setHoverState] = useState({
+    cbg: null,
   });
+
+  const [mapState, setMapState] = useState({
+    plotType: MapPlotType.CHOROPLETH,
+  });
+
   const [queryState, setQueryState] = useState(loadQueryStateFromSession());
 
   useEffect(() => {
@@ -88,15 +96,17 @@ function App() {
       <DataMap
         appState={appState}
         dataState={dataState}
+        hoverState={hoverState}
         mapState={mapState}
         queryState={queryState}
         setAppState={setAppState}
         setDataState={setDataState}
+        setHoverState={setHoverState}
         setMapState={setMapState}
         />
       <ChartPanel
         dataState={dataState}
-        mapState={mapState}
+        hoverState={hoverState}
         />
     </div>
   );
