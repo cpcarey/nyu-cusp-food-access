@@ -7,11 +7,12 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import os
+import itertools
 
 PROJECT_ID = 'project-usifood'
 DATASET_ID = 'dataset_1'
 TABLE_ID = 'table_2'
-TABLE_TRIP_ID = 'table_weekly_trips_by_cbg'
+TABLE_TRIP_ID = 'weekly_trips_by_home_cbg'
 TABLE_DEVICE_COUNT_ID = 'table_device_count'
 
 TABLE_PATH = f'{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}'
@@ -54,16 +55,19 @@ class NaicsCodeGroup(IntEnum):
     TOBACCO_LIQUOR = 5
 
 class MetricType(IntEnum):
-    RAW_VISITOR_COUNTS = 0
-    DENSITY = 1
-    HIGH_DENSITY_VISITOR_COUNTS = 2
+    RAW_VISITOR_COUNT = 0
+    ESTIMATED_VISITOR_COUNT = 1
+    PERCENT_RAW_VISITOR_COUNT = 2
+    PERCENT_ESTIMATED_VISITOR_COUNT = 3
+    CROWDING_INDEX = 4
 
 METRIC_NAMES_POI = {
-    MetricType.RAW_VISITOR_COUNTS: 'raw_visitor_counts',
+    MetricType.RAW_VISITOR_COUNT: 'raw_visitor_counts',
 }
 
 METRIC_NAMES_HOME = {
-    MetricType.RAW_VISITOR_COUNTS: 'visitor_count',
+    MetricType.RAW_VISITOR_COUNT: 'visitor_count',
+    MetricType.ESTIMATED_VISITOR_COUNT: 'estimated_visitor_count',
 }
 
 NAICS_CODES = {
@@ -76,17 +80,17 @@ NAICS_CODES = {
     NaicsCodeGroup.TOBACCO_LIQUOR: [445310, 453991, 722410],
 }
 
+FILTERED_CBGS = set([
+    360050001001, # Rikers Island
+])
+
 t1 = f'`{TABLE_PATH}`'
 t2 = f'`{TABLE_TRIP_PATH}`'
-t3 = f'`{TABLE_DEVICE_COUNT_PATH}`'
+# t3 = f'`{TABLE_DEVICE_COUNT_PATH}`'
 
 def process_data_frames(df_primary, df_compare, config):
-    if config.compare_attr_classes:
-        df_primary = calculate_percent_diff(df_primary, config)
-        df_compare = calculate_percent_diff(df_compare, config)
-
-        df_primary = df_primary[df_primary['value'] != 0]
-        df_compare = df_compare[df_compare['value'] != 0]
+    df_primary = calculate_percent_diff(df_primary, config)
+    df_compare = calculate_percent_diff(df_compare, config)
 
     df_values = df_primary
 
@@ -100,6 +104,8 @@ def process_data_frames(df_primary, df_compare, config):
                df_values['value_comparison'])
 
     df_values = aggregate_temporally(df_values, config)
+    df_values = df_values[~df_values[config.cbg_key].isin(FILTERED_CBGS)]
+
     values = dict(zip(df_values[config.cbg_key], df_values['value']))
     return values
 
@@ -113,28 +119,51 @@ def aggregate_temporally(df, config):
 def calculate_percent_diff(df, config):
     # Segment dataframe by attribute class.
     codes_1 = NAICS_CODES[int(config.key_attr_class_primary)]
-    codes_2 = NAICS_CODES[int(config.key_attr_class_compare)]
-    df1 = df[df['naics_code'].isin(codes_1)]
-    df2 = df[df['naics_code'].isin(codes_2)]
 
-    # Spatially aggregate metric across all POIs per CBG per week.
+    # Spatially aggregate metric across all POIs per naics code per CBG per week.
     df_all = df.groupby(by=[config.cbg_key, 'date_offset']).agg({
-        'value': 'sum'})
+        'value': 'sum'}).reset_index()
+
+    cbgs = set(df_all[config.cbg_key])
+    date_offsets = set(df_all['date_offset'])
+
+    # Create zero-filled dataframe of all permutations to preserve missing rows
+    # as zero when summing.
+    df_full = pd.DataFrame(
+            list(itertools.product(*[cbgs, date_offsets])),
+            columns=[config.cbg_key, 'date_offset'])
+    df_full['value'] = 0
+
+    df1 = df[df['naics_code'].isin(codes_1)]
     df1 = df1.groupby(by=[config.cbg_key, 'date_offset']).agg({
-        'value': 'sum'})
-    df2 = df2.groupby(by=[config.cbg_key, 'date_offset']).agg({
-        'value': 'sum'})
+        'value': config.spatial_aggregation_function}).reset_index()
+    df1 = df_full.merge(
+            df1, how='left',
+            on=[config.cbg_key, 'date_offset'])
+    df1['value'] = df1['value_x'] + df1['value_y']
+
+    if config.compare_attr_classes:
+        codes_2 = NAICS_CODES[int(config.key_attr_class_compare)]
+        df2 = df[df['naics_code'].isin(codes_2)]
+        df2 = df2.groupby(by=[config.cbg_key, 'date_offset']).agg({
+            'value': config.spatial_aggregation_function}).reset_index()
+        df2 = df_full.merge(
+                df2, how='left',
+                on=[config.cbg_key, 'date_offset'])
+        df2['value'] = df2['value_x'] + df2['value_y']
 
     # Subtract metric % of class 1 from metric % of class 2.
-    df_diff = df_all
-    df_diff['value'] = (
-            df2['value'] / df_all['value'] -
-            df1['value'] / df_all['value'])
+    if config.compare_attr_classes:
+        df_diff = df_full
+        df_diff['value'] = df1['value'] - df2['value']
 
-    # Reset index now that corresponding percentages have been compared
-    # and differenced.
-    df_diff = df_diff.reset_index()
-    return df_diff
+        # Reset index now that corresponding percentages have been compared
+        # and differenced.
+        df_diff = df_diff.reset_index().dropna()
+        return df_diff
+    else:
+        df1 = df1.reset_index().dropna()
+        return df1
 
 class CbgHomeQuery(Resource):
     def get(self):
@@ -179,9 +208,7 @@ class CbgHomeQuery(Resource):
                 rows_compare.append(row)
 
         # Create data frames.
-        df_columns = [query_config.cbg_key, 'date_offset', 'value']
-        if query_config.compare_attr_classes:
-            df_columns.append('naics_code')
+        df_columns = [query_config.cbg_key, 'date_offset', 'value', 'naics_code']
         df_primary = pd.DataFrame.from_records(
                 rows_primary,
                 columns=df_columns)
@@ -216,179 +243,7 @@ class HttpQuery:
         self.date_start_primary = args['ds']
         self.metric = int(args['m'])
         self.temporal_aggregation_type = int(args['aggt'])
-
-class SqlQuery:
-    def __init__(self, http_query, query_config):
-        self.date_end_compare = http_query.date_end_compare
-        self.date_end_primary = http_query.date_end_primary
-        self.date_start_compare = http_query.date_start_compare
-        self.date_start_primary = http_query.date_start_primary
-
-        # Attribute filter.
-        self.attr = http_query.attr
-        self.attr_sql = f' AND {http_query.attr} = {http_query.attr_value_primary}'
-
-        if http_query.attr == 'naics_code':
-            naics_codes = NAICS_CODES[int(http_query.attr_value_primary)]
-            attr_value_sql = ', '.join([str(s) for s in naics_codes])
-            attr_value_sql = f'({attr_value_sql})'
-            self.attr_sql = f'AND {http_query.attr} IN {attr_value_sql}'
-
-        # Comparison attribute filter.
-        if query_config.compare_attr_classes:
-            # all_values = []
-            # attr_value_sql = ''
-            # for naics_codes in NAICS_CODES.values():
-                # all_values += [str(s) for s in naics_codes]
-            # attr_value_sql += ', '.join(all_values)
-            # attr_value_sql = f'({attr_value_sql})'
-            self.attr_sql = ''#f'AND {attr} IN {attr_value_sql}'
-
-        # Metric query predicate.
-        self.metric_sql = ''
-        self.filter_sqls = []
-
-        if query_config.cbg_key == 'poi_cbg':
-            if http_query.metric == MetricType.RAW_VISITOR_COUNTS:
-                self.metric_sql = f'({t1}.raw_visitor_counts / {t3}.device_count * 7)'
-            elif http_query.metric == MetricType.DENSITY:
-                self.metric_sql = f'({t1}.raw_visitor_counts / {t3}.device_count * 7)'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
-            elif http_query.metric == MetricType.HIGH_DENSITY_VISITS:
-                self.metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7) * ({t1}.raw_visitor_counts / {t1}.area_square_feet)'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
-        elif query_config.cbg_key == 'home_cbg':
-            if http_query.metric == MetricType.RAW_VISITOR_COUNTS:
-                self.metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7)'
-            elif http_query.metric == MetricType.DENSITY:
-                self.metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7)'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
-            elif http_query.metric == MetricType.HIGH_DENSITY_VISITS:
-                self.metric_sql = f'({t2}.visitor_count / {t3}.device_count * 7) * ({t1}.raw_visitor_counts / {t1}.area_square_feet)'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
-
-        # Metric aggregation method.
-        self.metric_aggregate = f'{self.metric_sql} as metric_agg'
-        self.temporal_aggregation_function = ''
-        if http_query.temporal_aggregation_type == AggregationType.SUM:
-            self.temporal_aggregation_function = 'sum'
-        elif http_query.temporal_aggregation_type == AggregationType.AVG:
-            self.temporal_aggregation_function = 'mean'
-        elif http_query.temporal_aggregation_type == AggregationType.MEDIAN:
-            self.temporal_aggregation_function = 'median'
-
-    def get_query_home_primary(self, query_config):
-        q = ''
-        q += f'SELECT'
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql})'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        q += f' FROM {t1}'
-        q += f' INNER JOIN {t2}'
-        q += f'  ON {t1}.placekey = {t2}.placekey'
-        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
-        q += f' INNER JOIN {t3}'
-        q += f'  ON {t2}.visitor_home_cbg_id = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
-        q += f'  AND TIMESTAMP("{self.date_end_primary}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        return q
-
-    def get_query_home_compare(self, query_config):
-        if not query_config.compare_dates:
-            return ''
-
-        q = ''
-        q += f'SELECT'
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql})'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        q += f' FROM {t1}'
-        q += f' INNER JOIN {t2}'
-        q += f'  ON {t1}.placekey = {t2}.placekey'
-        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
-        q += f' INNER JOIN {t3}'
-        q += f'  ON {t2}.visitor_home_cbg_id = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
-        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        return q
-
-    def get_query_poi_primary(self, query_config):
-        q = ''
-        q += 'SELECT'
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql})'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        q += f' FROM {t1}'
-        q += f' INNER JOIN {t3}'
-        q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
-        q += f'  AND TIMESTAMP("{self.date_end_primary}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        return q
-
-    def get_query_poi_compare(self, query_config):
-        if not query_config.compare_dates:
-            return ''
-
-        q = ''
-        q += 'SELECT'
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql})'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        q += f' FROM {t1}'
-        q += f' INNER JOIN {t3}'
-        q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
-        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start'
-        if query_config.compare_attr_classes:
-            q += f', {self.attr}'
-        return q
-
+        self.spatial_aggregation_type = int(args['aggs'])
 
 class QueryConfig:
     key_cbg = ''
@@ -405,6 +260,186 @@ class QueryConfig:
         self.compare_dates = (http_query.date_start_compare != None and
                               http_query.date_end_compare != None)
         self.compare_attr_classes = http_query.attr_value_compare != None
+
+        self.spatial_aggregation_function = ''
+        if http_query.spatial_aggregation_type == AggregationType.SUM:
+            self.spatial_aggregation_function = 'sum'
+        elif http_query.spatial_aggregation_type == AggregationType.AVG:
+            self.spatial_aggregation_function = 'mean'
+        elif http_query.spatial_aggregation_type == AggregationType.MEDIAN:
+            self.spatial_aggregation_function = 'median'
+
+        self.percent = (http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT
+                or http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT)
+
+class SqlQuery:
+    def __init__(self, http_query, query_config):
+        self.date_end_compare = http_query.date_end_compare
+        self.date_end_primary = http_query.date_end_primary
+        self.date_start_compare = http_query.date_start_compare
+        self.date_start_primary = http_query.date_start_primary
+
+        # Attribute filter.
+        self.attr = http_query.attr
+        self.attr_sql = ''
+
+       # f' AND {http_query.attr} = {http_query.attr_value_primary}'
+
+       # if http_query.attr == 'naics_code':
+       #     naics_codes = NAICS_CODES[int(http_query.attr_value_primary)]
+       #     attr_value_sql = ', '.join([str(s) for s in naics_codes])
+       #     attr_value_sql = f'({attr_value_sql})'
+       #     self.attr_sql = f'AND {http_query.attr} IN {attr_value_sql}'
+
+       # # Comparison attribute filter.
+       # if query_config.compare_attr_classes:
+       #     # all_values = []
+       #     # attr_value_sql = ''
+       #     # for naics_codes in NAICS_CODES.values():
+       #         # all_values += [str(s) for s in naics_codes]
+       #     # attr_value_sql += ', '.join(all_values)
+       #     # attr_value_sql = f'({attr_value_sql})'
+       #     self.attr_sql = ''#f'AND {attr} IN {attr_value_sql}'
+
+        # Metric query predicate.
+        self.metric_sql = ''
+        self.filter_sqls = []
+
+        if query_config.cbg_key == 'poi_cbg':
+            if http_query.metric == MetricType.RAW_VISITOR_COUNT:
+                self.metric_sql = f'{t1}.raw_visitor_counts'
+            elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.estimated_visitor_counts'
+            elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
+                self.metric_sql = f'{t1}.raw_visitor_counts'
+            elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.estimated_visitor_counts'
+            elif http_query.metric == MetricType.CROWDING_INDEX:
+                self.metric_sql = f'({t1}.raw_visitor_counts / {t3}.device_count * 7)'
+                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
+                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
+        elif query_config.cbg_key == 'home_cbg':
+            if http_query.metric == MetricType.RAW_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.visitor_count'
+            elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.estimated_visitor_count'
+            elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.pct_visitor_count'
+            elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
+                self.metric_sql = f'{t2}.pct_estimated_visitor_count'
+            elif http_query.metric == MetricType.CROWDING_INDEX:
+                self.metric_sql = f'{t2}.estimated_visitor_count * {t2}.estimated_visitor_count / {t1}.area_square_feet'
+                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
+                self.filter_sqls = f' AND {t2}.estimated_visitor_count / {t1}.area_square_feet > 0.0005'
+
+        # Temporal aggregation method.
+        self.metric_aggregate = f'{self.metric_sql} as metric_agg'
+        self.temporal_aggregation_function = ''
+        if http_query.temporal_aggregation_type == AggregationType.SUM:
+            self.temporal_aggregation_function = 'sum'
+        elif http_query.temporal_aggregation_type == AggregationType.AVG:
+            self.temporal_aggregation_function = 'mean'
+        elif http_query.temporal_aggregation_type == AggregationType.MEDIAN:
+            self.temporal_aggregation_function = 'median'
+
+        # There is only one entry per home CBG, week, and NAICS code.
+        self.aggregation_sql = f'SUM({self.metric_sql})'
+
+    def get_query_home_primary(self, query_config):
+        q = ''
+        q += f'SELECT'
+        q += f' {t2}.visitor_home_cbg_id,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.aggregation_sql},'
+        q += f' {self.attr}'
+        q += f' FROM {t1}'
+        q += f' INNER JOIN {t2}'
+        q += f'  ON {t1}.placekey = {t2}.placekey'
+        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
+        q += f' WHERE {t1}.date_range_start'
+        q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
+        q += f'  AND TIMESTAMP("{self.date_end_primary}")'
+        for filter_sql in self.filter_sqls:
+            q += filter_sql
+        q += f' {self.attr_sql}'
+        q += ' GROUP BY '
+        q += f' {t2}.visitor_home_cbg_id,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.attr}'
+        return q
+
+    def get_query_home_compare(self, query_config):
+        if not query_config.compare_dates:
+            return ''
+
+        q = ''
+        q += f'SELECT'
+        q += f' {t2}.visitor_home_cbg_id,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.aggregation_sql},'
+        q += f' {self.attr}'
+        q += f' FROM {t1}'
+        q += f' INNER JOIN {t2}'
+        q += f'  ON {t1}.placekey = {t2}.placekey'
+        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
+        q += f' WHERE {t1}.date_range_start'
+        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
+        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
+        for filter_sql in self.filter_sqls:
+            q += filter_sql
+        q += f' {self.attr_sql}'
+        q += ' GROUP BY '
+        q += f' {t2}.visitor_home_cbg_id,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.attr}'
+        return q
+
+    def get_query_poi_primary(self, query_config):
+        q = ''
+        q += 'SELECT'
+        q += f' {t1}.poi_cbg,'
+        q += f' {t1}.date_range_start,'
+        q += f' SUM({self.metric_sql}),'
+        q += f' {self.attr}'
+        q += f' FROM {t1}'
+        # q += f' INNER JOIN {t3}'
+        # q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
+        q += f' WHERE {t1}.date_range_start'
+        q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
+        q += f'  AND TIMESTAMP("{self.date_end_primary}")'
+        for filter_sql in self.filter_sqls:
+            q += filter_sql
+        # q += f' {self.attr_sql}'
+        q += ' GROUP BY '
+        q += f' {t1}.poi_cbg,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.attr}'
+        return q
+
+    def get_query_poi_compare(self, query_config):
+        if not query_config.compare_dates:
+            return ''
+
+        q = ''
+        q += 'SELECT'
+        q += f' {t1}.poi_cbg,'
+        q += f' {t1}.date_range_start,'
+        q += f' SUM({self.metric_sql}),'
+        q += f' {self.attr}'
+        q += f' FROM {t1}'
+        # q += f' INNER JOIN {t3}'
+        # q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
+        q += f' WHERE {t1}.date_range_start'
+        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
+        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
+        for filter_sql in self.filter_sqls:
+            q += filter_sql
+        # q += f' {self.attr_sql}'
+        q += ' GROUP BY '
+        q += f' {t1}.poi_cbg,'
+        q += f' {t1}.date_range_start,'
+        q += f' {self.attr}'
+        return q
 
 class CbgPoiQuery(Resource):
     def get(self):
@@ -448,9 +483,7 @@ class CbgPoiQuery(Resource):
                 rows_compare.append(row)
 
         # Create data frames.
-        df_columns = [query_config.cbg_key, 'date_offset', 'value']
-        if query_config.compare_attr_classes:
-            df_columns.append('naics_code')
+        df_columns = [query_config.cbg_key, 'date_offset', 'value', 'naics_code']
         df_primary = pd.DataFrame.from_records(
                 rows_primary,
                 columns=df_columns)

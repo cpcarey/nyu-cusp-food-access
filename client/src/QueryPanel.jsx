@@ -149,15 +149,29 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleDateStartChange(e, queryState) {
-    const {dateStart, dateEnd} =
-        validateStartDate(
-            new Date(e.target.value),
-            new Date(queryState.dateEnd));
+    const primary = {};
+    const compare = {};
+
+    primary.dateStart = getMonday(new Date(e.target.value));
+
+    primary.dateEnd = new Date(primary.dateStart);
+    primary.dateEnd.setDate(primary.dateStart.getDate() + 7 * 12 - 1);
+    primary.dateEnd = getMonday(primary.dateEnd);
+
+    compare.dateStart = new Date(primary.dateStart);
+    compare.dateStart.setDate(compare.dateStart.getDate() - 7 * 12);
+    compare.dateStart = getMonday(compare.dateStart);
+
+    compare.dateEnd = new Date(compare.dateStart);
+    compare.dateEnd.setDate(compare.dateStart.getDate() + 7 * 12 - 1);
+    compare.dateEnd = getMonday(compare.dateEnd);
 
     setQueryState({
       ...queryState,
-      dateEnd: convertDateToString(dateEnd),
-      dateStart: convertDateToString(dateStart),
+      dateEnd: convertDateToString(primary.dateEnd),
+      dateStart: convertDateToString(primary.dateStart),
+      comparisonDateEnd: convertDateToString(compare.dateEnd),
+      comparisonDateStart: convertDateToString(compare.dateStart),
     });
   }
 
@@ -184,14 +198,24 @@ export function QueryPanel({queryState, setQueryState}) {
     return {dateStart, dateEnd};
   }
 
+  function getMonday(date) {
+    while (date.getDay() !== 1) {
+      date.setDate(date.getDate() - 1)
+    }
+    return date;
+  }
+
   function validateStartDate(dateStart, dateEnd) {
     // Ensure end date is at least seven days after end date.
-    const dateEndMin = new Date(dateStart);
-    dateEndMin.setDate(dateStart.getDate() + 7);
+    //const dateEndMin = new Date(dateStart);
+    //dateEndMin.setDate(dateStart.getDate() + 7);
 
-    if (dateEnd < dateEndMin) {
-      dateEnd = dateEndMin;
-    }
+    //if (dateEnd < dateEndMin) {
+      //dateEnd = dateEndMin;
+    //}
+    //
+    dateEnd = new Date(dateStart);
+    dateEnd.setDate(dateStart.getDate() + 7 * 6);
 
     return {dateStart, dateEnd};
   }
@@ -349,9 +373,11 @@ export function QueryPanel({queryState, setQueryState}) {
             <select
               defaultValue={queryState.metricType}
               onChange={(e) => handleMetricTypeChange(e, queryState)}>
-              <option value="0">Visitor count</option>
-              <option value="1">Density</option>
-              <option value="2">High-density visitor count</option>
+              <option value="0">Raw visitor count</option>
+              <option value="1">Est. visitor count</option>
+              <option value="2">% raw visitor count</option>
+              <option value="3">% est. visitor count</option>
+              <option value="4">Crowding index</option>
             </select>
           </div>
         </div>
