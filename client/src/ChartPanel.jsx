@@ -16,7 +16,7 @@ const COLORS = [
   '#377eb8',
   '#4eaf4a',
   '#984ea4',
-  '#ff7f00',
+  //'#ff7f00',
   '#ffff33',
 ];
 
@@ -117,7 +117,10 @@ export function ChartPanel({dataState, hoverState}) {
       clusterCounts[clusterIndex]++;
     }
 
-    const clusterMeans = clusterSums.map((sum, i) => sum / clusterCounts[i]);
+    const clusterMeans =
+        clusterSums
+            .map((sum, i) => sum / clusterCounts[i])
+            .filter((x, i) => i !== 4);
 
     setIncomes(incomes);
     setIncomeKeys(incomeKeys);

@@ -95,6 +95,10 @@ export function DataMap({
             }
             console.debug(query);
             setAppState({...appState, loading: false});
+          })
+          .catch((e) => {
+            console.log(e);
+            setAppState({...appState, loading: false});
           });
       }, [constructQueryUrl, setAppState]);
 
