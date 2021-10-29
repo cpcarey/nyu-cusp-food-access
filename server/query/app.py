@@ -173,38 +173,33 @@ class CbgHomeQuery(Resource):
         query_config = QueryConfig(http_query)
         query_config.cbg_key = 'home_cbg'
 
-        # Form queries.
+        # Form query.
         sql_query = SqlQuery(http_query, query_config)
         query_config.aggregation_function_temporal = (
                 sql_query.temporal_aggregation_function)
-        query_primary = sql_query.get_query_home_primary(query_config)
-        query_compare = sql_query.get_query_home_compare(query_config)
+        query = sql_query.get_query_home(query_config)
 
-        # Make queries.
+        # Make query.
         client = bigquery.Client()
         job_config = bigquery.QueryJobConfig()
-        response_primary = client.query(query_primary, job_config=job_config)
-        if query_config.compare_dates:
-            response_compare = (
-                    client.query(query_compare, job_config=job_config))
+        response = client.query(query, job_config=job_config)
 
-        # Process queries.
+        # Process query.
         date_origin_primary = datetime.fromisoformat(sql_query.date_start_primary)
-        rows_primary = []
-        for row in response_primary:
-            row = list(row)
-            row[1] = (row[1].replace(tzinfo=None) - date_origin_primary).days
-            rows_primary.append(row)
-
         if query_config.compare_dates:
             date_origin_compare = (
                     datetime.fromisoformat(sql_query.date_start_compare))
-            rows_compare = []
-            for row in response_compare:
-                row = list(row)
-                row[1] = (
-                        row[1].replace(tzinfo=None) -
-                        date_origin_compare).days
+        rows_primary = []
+        rows_compare = []
+        for row in response:
+            row = list(row)
+            dt = row[1].replace(tzinfo=None)
+            # Split rows based on time period.
+            if dt >= date_origin_primary:
+                row[1] = (dt - date_origin_primary).days
+                rows_primary.append(row)
+            else:
+                row[1] = (dt - date_origin_compare).days
                 rows_compare.append(row)
 
         # Create data frames.
@@ -226,7 +221,7 @@ class CbgHomeQuery(Resource):
 
         # Return results.
         results = {
-            'query': query_primary,
+            'query': query,
             'response': values,
         }
 
@@ -283,54 +278,22 @@ class SqlQuery:
         self.attr = http_query.attr
         self.attr_sql = ''
 
-       # f' AND {http_query.attr} = {http_query.attr_value_primary}'
-
-       # if http_query.attr == 'naics_code':
-       #     naics_codes = NAICS_CODES[int(http_query.attr_value_primary)]
-       #     attr_value_sql = ', '.join([str(s) for s in naics_codes])
-       #     attr_value_sql = f'({attr_value_sql})'
-       #     self.attr_sql = f'AND {http_query.attr} IN {attr_value_sql}'
-
-       # # Comparison attribute filter.
-       # if query_config.compare_attr_classes:
-       #     # all_values = []
-       #     # attr_value_sql = ''
-       #     # for naics_codes in NAICS_CODES.values():
-       #         # all_values += [str(s) for s in naics_codes]
-       #     # attr_value_sql += ', '.join(all_values)
-       #     # attr_value_sql = f'({attr_value_sql})'
-       #     self.attr_sql = ''#f'AND {attr} IN {attr_value_sql}'
-
         # Metric query predicate.
         self.metric_sql = ''
         self.filter_sqls = []
 
-        if query_config.cbg_key == 'poi_cbg':
-            if http_query.metric == MetricType.RAW_VISITOR_COUNT:
-                self.metric_sql = f'{t1}.raw_visitor_counts'
-            elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.estimated_visitor_counts'
-            elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
-                self.metric_sql = f'{t1}.raw_visitor_counts'
-            elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.estimated_visitor_counts'
-            elif http_query.metric == MetricType.CROWDING_INDEX:
-                self.metric_sql = f'({t1}.raw_visitor_counts / {t3}.device_count * 7)'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.005'
-        elif query_config.cbg_key == 'home_cbg':
-            if http_query.metric == MetricType.RAW_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.visitor_count'
-            elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.estimated_visitor_count'
-            elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.pct_visitor_count'
-            elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
-                self.metric_sql = f'{t2}.pct_estimated_visitor_count'
-            elif http_query.metric == MetricType.CROWDING_INDEX:
-                self.metric_sql = f'{t2}.estimated_visitor_count * {t2}.estimated_visitor_count / {t1}.area_square_feet'
-                self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-                self.filter_sqls = f' AND {t2}.estimated_visitor_count / {t1}.area_square_feet > 0.0005'
+        if http_query.metric == MetricType.RAW_VISITOR_COUNT:
+            self.metric_sql = f'{t2}.visitor_count'
+        elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
+            self.metric_sql = f'{t2}.esimated_visitor_count'
+        elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
+            self.metric_sql = f'{t2}.pct_visitor_count'
+        elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
+            self.metric_sql = f'{t2}.pct_estimated_visitor_count'
+        elif http_query.metric == MetricType.CROWDING_INDEX:
+            self.metric_sql = f'{t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet'
+            self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
+            self.filter_sqls = f' AND {t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.0005'
 
         # Temporal aggregation method.
         self.metric_aggregate = f'{self.metric_sql} as metric_agg'
@@ -345,7 +308,7 @@ class SqlQuery:
         # There is only one entry per home CBG, week, and NAICS code.
         self.aggregation_sql = f'SUM({self.metric_sql})'
 
-    def get_query_home_primary(self, query_config):
+    def get_query_home(self, query_config):
         q = ''
         q += f'SELECT'
         q += f' {t2}.visitor_home_cbg_id,'
@@ -359,32 +322,10 @@ class SqlQuery:
         q += f' WHERE {t1}.date_range_start'
         q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
         q += f'  AND TIMESTAMP("{self.date_end_primary}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
-        q += f' {self.attr}'
-        return q
-
-    def get_query_home_compare(self, query_config):
-        if not query_config.compare_dates:
-            return ''
-
-        q = ''
-        q += f'SELECT'
-        q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
-        q += f' {self.aggregation_sql},'
-        q += f' {self.attr}'
-        q += f' FROM {t1}'
-        q += f' INNER JOIN {t2}'
-        q += f'  ON {t1}.placekey = {t2}.placekey'
-        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
-        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
+        if query_config.compare_dates:
+            q += f'  OR {t1}.date_range_start'
+            q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
+            q += f'  AND TIMESTAMP("{self.date_end_compare}")'
         for filter_sql in self.filter_sqls:
             q += filter_sql
         q += f' {self.attr_sql}'
