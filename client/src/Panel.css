@@ -13,6 +13,11 @@
     width .1s ease-out;
 }
 
+.static-value {
+  margin: 10px 0 0 0;
+  font-size: 18px;
+}
+
 .panel button {
   height: 36px;
   font-size: 24px;

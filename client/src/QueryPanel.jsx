@@ -225,14 +225,7 @@ export function QueryPanel({queryState, setQueryState}) {
       <div className="panel-controls">
         <div className="panel-control dropdown">
           <div>Aggregation Direction</div>
-          <div className="select-container">
-            <select
-              defaultValue={queryState.aggregationDirection}
-              onChange={(e) => handleAggregationDirectionChange(e, queryState)}>
-              <option value="0">POI CBG</option>
-              <option value="1">Home CBG</option>
-            </select>
-          </div>
+          <div className="static-value">Home CBG</div>
         </div>
         <hr />
         <div className="panel-control date-picker">
@@ -377,7 +370,7 @@ export function QueryPanel({queryState, setQueryState}) {
               <option value="1">Est. visitor count</option>
               <option value="2">% raw visitor count</option>
               <option value="3">% est. visitor count</option>
-              <option value="4">Crowding index</option>
+              <option value="4">Contact density</option>
             </select>
           </div>
         </div>
