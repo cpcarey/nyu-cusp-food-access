@@ -382,75 +382,7 @@ class SqlQuery:
         q += f' {self.attr}'
         return q
 
-class CbgPoiQuery(Resource):
-    def get(self):
-        # Parse HTTP request.
-        args = parser.parse_args()
-        http_query = HttpQuery(args)
-        query_config = QueryConfig(http_query)
-        query_config.cbg_key = 'poi_cbg'
-
-        # Form queries.
-        sql_query = SqlQuery(http_query, query_config)
-        query_config.aggregation_function_temporal = (
-                sql_query.temporal_aggregation_function)
-        query_primary = sql_query.get_query_poi_primary(query_config)
-        query_compare = sql_query.get_query_poi_compare(query_config)
-
-        # Make queries.
-        client = bigquery.Client()
-        job_config = bigquery.QueryJobConfig()
-        response_primary = client.query(query_primary, job_config=job_config)
-        if query_config.compare_dates:
-            response_compare = (
-                    client.query(query_compare, job_config=job_config))
-
-        # Process queries.
-        date_origin_primary = datetime.fromisoformat(sql_query.date_start_primary)
-        rows_primary = []
-        for row in response_primary:
-            row = list(row)
-            row[1] = (row[1].replace(tzinfo=None) - date_origin_primary).days
-            rows_primary.append(row)
-        if query_config.compare_dates:
-            date_origin_compare = (
-                    datetime.fromisoformat(sql_query.date_start_compare))
-            rows_compare = []
-            for row in response_compare:
-                row = list(row)
-                row[1] = (
-                        row[1].replace(tzinfo=None) -
-                        date_origin_compare).days
-                rows_compare.append(row)
-
-        # Create data frames.
-        df_columns = [query_config.cbg_key, 'date_offset', 'value', 'naics_code']
-        df_primary = pd.DataFrame.from_records(
-                rows_primary,
-                columns=df_columns)
-        df_compare = pd.DataFrame.from_records(
-                rows_primary,
-                columns=df_columns)
-        df_compare['value'].values[:] = 0
-        if query_config.compare_dates:
-            df_compare = pd.DataFrame.from_records(
-                    rows_compare,
-                    columns=df_columns)
-
-        # Transform data frames.
-        values = process_data_frames(df_primary, df_compare, query_config)
-
-        # Return results.
-        results = {
-            'query': query_primary,
-            'response': values,
-        }
-
-        return results
-
-
 api.add_resource(CbgHomeQuery, '/cbg/home/q')
-api.add_resource(CbgPoiQuery, '/cbg/poi/q')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

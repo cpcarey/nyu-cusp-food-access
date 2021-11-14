@@ -223,11 +223,6 @@ export function QueryPanel({queryState, setQueryState}) {
   return (
     <div className={classNamePanel}>
       <div className="panel-controls">
-        <div className="panel-control dropdown">
-          <div>Aggregation Direction</div>
-          <div className="static-value">Home CBG</div>
-        </div>
-        <hr />
         <div className="panel-control date-picker">
           <div>Start Date</div>
           <div>
