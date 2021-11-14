@@ -131,3 +131,11 @@ private/
 src/data/
 **/private/
 **/__pycache__
+
+
+notebooks/data/**/*
+notebooks/exports/cdi/**/*
+notebooks/exports/**/*
+notebooks/others/**/*
+notebooks/scp/**/*
+**/*.ipynb_checkpoints
