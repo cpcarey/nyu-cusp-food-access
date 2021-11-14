@@ -4,14 +4,13 @@ import {DataMap} from 'DataMap.jsx';
 import {QueryPanel} from 'QueryPanel.jsx';
 
 import {
-  AggregationDirection, AggregationType, AttributeType, MapPlotType,
+  AggregationType, AttributeType, MapPlotType,
   MetricType, NaicsCodeGroup, VisualizationType,
 } from 'enum.js';
 
 import './App.css';
 
 const queryStateSessionStorageParsers = {
-  aggregationDirection: (datum) => parseInt(datum),
   attributeClass: (datum) => parseInt(datum),
   attributeType: (datum) => parseInt(datum),
   compareDates: (datum) => datum === 'true',
@@ -28,7 +27,6 @@ const queryStateSessionStorageParsers = {
 /** @return {!QueryState} */
 function createDefaultQueryState() {
   return {
-    aggregationDirection: AggregationDirection.POI,
     attributeClass: NaicsCodeGroup.SUPERMARKETS,
     attributeType: AttributeType.NAICS_CODE_GROUP,
     compareDates: true,

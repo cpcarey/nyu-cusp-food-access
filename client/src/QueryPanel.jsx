@@ -20,17 +20,6 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleAggregationDirectionChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      aggregationDirection: parseInt(e.target.value),
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
   function handleSpatialAggregationTypeChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -177,18 +166,6 @@ export function QueryPanel({queryState, setQueryState}) {
   return (
     <div className={classNamePanel}>
       <div className="panel-controls">
-        <div className="panel-control dropdown">
-          <div>Aggregation Direction</div>
-          <div className="select-container">
-            <select
-              defaultValue={queryState.aggregationDirection}
-              onChange={(e) => handleAggregationDirectionChange(e, queryState)}>
-              <option value="0">POI CBG</option>
-              <option value="1">Home CBG</option>
-            </select>
-          </div>
-        </div>
-        <hr />
         <div className="panel-control date-picker">
           <div>Start Date</div>
           <div>

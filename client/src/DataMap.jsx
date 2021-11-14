@@ -10,7 +10,6 @@ import * as util from './analysis/util.js';
 
 import './DataMap.css';
 
-const PATH_QUERY_CBG_POI = 'cbg/poi/q';
 const PATH_QUERY_CBG_HOME = 'cbg/home/q';
 
 mapboxgl.accessToken = tokens.mapbox;
@@ -41,14 +40,7 @@ export function DataMap({
 
   const getPath =
       useCallback(function(queryState) {
-        switch (queryState.aggregationDirection) {
-          case AggregationDirection.POI:
-            return PATH_QUERY_CBG_POI;
-          case AggregationDirection.HOME:
-            return PATH_QUERY_CBG_HOME;
-          default:
-            throw new Error();
-        }
+        return PATH_QUERY_CBG_HOME;
       }, []);
 
   const constructQueryUrl =
