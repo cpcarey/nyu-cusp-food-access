@@ -55,18 +55,11 @@ class NaicsCodeGroup(IntEnum):
     TOBACCO_LIQUOR = 5
 
 class MetricType(IntEnum):
-    RAW_VISITOR_COUNT = 0
-    ESTIMATED_VISITOR_COUNT = 1
-    PERCENT_RAW_VISITOR_COUNT = 2
-    PERCENT_ESTIMATED_VISITOR_COUNT = 3
-    CROWDING_INDEX = 4
-
-METRIC_NAMES_POI = {
-    MetricType.RAW_VISITOR_COUNT: 'raw_visitor_counts',
-}
+    ESTIMATED_VISITOR_COUNT = 0
+    PERCENT_ESTIMATED_VISITOR_COUNT = 1
+    CROWDING_DENSITY_INDEX = 4
 
 METRIC_NAMES_HOME = {
-    MetricType.RAW_VISITOR_COUNT: 'visitor_count',
     MetricType.ESTIMATED_VISITOR_COUNT: 'estimated_visitor_count',
 }
 
@@ -264,8 +257,7 @@ class QueryConfig:
         elif http_query.spatial_aggregation_type == AggregationType.MEDIAN:
             self.spatial_aggregation_function = 'median'
 
-        self.percent = (http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT
-                or http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT)
+        self.percent = (http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT)
 
 class SqlQuery:
     def __init__(self, http_query, query_config):
@@ -282,15 +274,11 @@ class SqlQuery:
         self.metric_sql = ''
         self.filter_sqls = []
 
-        if http_query.metric == MetricType.RAW_VISITOR_COUNT:
-            self.metric_sql = f'{t2}.visitor_count'
-        elif http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
+        if http_query.metric == MetricType.ESTIMATED_VISITOR_COUNT:
             self.metric_sql = f'{t2}.esimated_visitor_count'
-        elif http_query.metric == MetricType.PERCENT_RAW_VISITOR_COUNT:
-            self.metric_sql = f'{t2}.pct_visitor_count'
         elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
             self.metric_sql = f'{t2}.pct_estimated_visitor_count'
-        elif http_query.metric == MetricType.CROWDING_INDEX:
+        elif http_query.metric == MetricType.CROWDING_DENSITY_INDEX:
             self.metric_sql = f'{t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet'
             self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
             self.filter_sqls = f' AND {t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.0005'

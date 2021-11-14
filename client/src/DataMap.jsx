@@ -5,7 +5,7 @@ import {tokens} from 'private-tokens';
 import {ChoroplethAnalysis} from 'analysis/ChoroplethAnalysis.js';
 import {ClusterAnalysis} from 'analysis/ClusterAnalysis.js';
 
-import {AggregationDirection, MapPlotType} from './enum.js';
+import {MapPlotType} from './enum.js';
 import * as util from './analysis/util.js';
 
 import './DataMap.css';
@@ -52,7 +52,12 @@ export function DataMap({
         url += `?a=${attribute}`
         url += `&av=${queryState.attributeClass}`
         url += `&ds=${queryState.dateStart}`
-        url += `&de=${queryState.dateEnd}`
+
+        const date = new Date(queryState.dateStart);
+        date.setDate(date.getDate() + queryState.datePeriodDuration * 7 - 1);
+        const dateEnd = date.toISOString().substring(0, 10);
+
+        url += `&de=${dateEnd}`
 
         if (queryState.compareAttributeClasses) {
           url += `&cav=${queryState.comparisonAttributeClass}`
@@ -81,6 +86,7 @@ export function DataMap({
         await fetch(url)
           .then((data) => data.json())
           .then((json) => {
+            console.log(json);
             const {query, response} = json;
             for (const key of Object.keys(response)) {
               cbgValueMap.set(parseInt(key), response[key]);
