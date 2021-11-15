@@ -133,9 +133,8 @@ src/data/
 **/__pycache__
 
 
-notebooks/data/**/*
-notebooks/exports/cdi/**/*
-notebooks/exports/**/*
-notebooks/others/**/*
-notebooks/scp/**/*
 **/*.ipynb_checkpoints
+notebooks/data
+notebooks/exports
+notebooks/others
+notebooks/scp

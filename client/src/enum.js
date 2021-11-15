@@ -1,8 +1,3 @@
-export const AggregationDirection = {
-  POI: 0,
-  HOME: 1,
-};
-
 export const AggregationType = {
   AVG: 0,
   MEDIAN: 1,
@@ -33,7 +28,7 @@ export const VisualizationType = {
 };
 
 export const MetricType = {
-  VISITORS: 0,
-  DENSITY: 1,
-  HIGH_DENSITY_VISIT_VISITORS: 2,
+  ESTIMATED_VISITOR_COUNT: 0,
+  PERCENT_ESTIMATED_VISITOR_COUNT: 1,
+  CROWDING_DENSITY_INDEX: 2,
 };
