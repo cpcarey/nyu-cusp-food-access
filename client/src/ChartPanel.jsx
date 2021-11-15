@@ -90,31 +90,56 @@ export function ChartPanel({dataState, hoverState}) {
 
   // Set values.
   useEffect(() => {
-    const keys = [...dataState.cbgStandardizedValueMap.keys()];
+    const cbgs = [...dataState.cbgStandardizedValueMap.keys()];
     setValues([...dataState.cbgStandardizedValueMap.values()]);
 
-    const incomeKeys = [];
+    const incomeCbgs = [];
     const incomes = [];
     const incomeValues = [];
 
     const clusterSums = [0, 0, 0, 0, 0, 0];
     const clusterCounts = [0, 0, 0, 0, 0, 0];
 
-    for (const key of keys) {
-      const x = incomeJson[key];
-      const y = dataState.cbgValueMap.get(key);
-      const t = key;
+    for (const cbg of cbgs) {
+      const x = incomeJson[cbg];
+      const y = dataState.cbgStandardizedValueMap.get(cbg);
+      const t = cbg;
 
       if (x && y) {
-        incomeKeys.push(t);
+        incomeCbgs.push(t);
         incomes.push(x);
         incomeValues.push(y);
       }
 
-      const value = dataState.cbgStandardizedValueMap.get(key) || 0;
-      const clusterIndex = clusterJson[key];
+      const value = dataState.cbgStandardizedValueMap.get(cbg) || 0;
+      const clusterIndex = clusterJson[cbg];
       clusterSums[clusterIndex] += value;
       clusterCounts[clusterIndex]++;
+    }
+
+    const incomeQ = [];
+    const incomeQuartiles = [];
+    const incomeMeans = [];
+
+    incomes.sort((a, b) => a - b);
+    const q = Math.floor(incomes.length / 20);
+    for (let i = 0; i < 20; i++) {
+      incomeQuartiles.push(incomes[(i + 1) * q]);
+      incomeMeans.push([]);
+    }
+    for (let i in incomes) {
+      for (let j = 0; j < 20; j++) {
+        incomeQ.push(j);
+        if (j === 19 ||
+            (incomes[i] > incomeQuartiles[j] &&
+             incomes[i] <= incomeQuartiles[j + 1])) {
+          incomeMeans[j].push(incomeValues[i]);
+          break;
+        }
+      }
+    }
+    for (let i in incomeMeans) {
+      incomeMeans[i] = incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
     }
 
     const clusterMeans =
@@ -122,9 +147,12 @@ export function ChartPanel({dataState, hoverState}) {
             .map((sum, i) => sum / clusterCounts[i])
             .filter((x, i) => i !== 4);
 
-    setIncomes(incomes);
-    setIncomeKeys(incomeKeys);
-    setIncomeValues(incomeValues);
+    setIncomes(incomeQ);
+    setIncomeKeys(incomeQ);
+    setIncomeValues(incomeMeans);
+
+    console.log(incomeQuartiles);
+    console.log(incomeMeans);
 
     setClusterValues(clusterMeans);
   }, [
@@ -216,8 +244,8 @@ export function ChartPanel({dataState, hoverState}) {
                 text: incomeKeys,
                 marker: {
                   color: '#c466ff',
-                  size: 2,
-                  opacity: 0.3,
+                  size: 5,
+                  opacity: 1,
                 },
               },
             ]}
