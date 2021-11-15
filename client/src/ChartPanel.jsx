@@ -8,8 +8,11 @@ import censusJson from './data/cbg_attr_and_cluster_1115.json';
 const incomeJson = censusJson['income'];
 const clusterJson = censusJson['cluster'];
 
+const N_PERCENTILES = 20;
+const PERCENTILE_INDICES = new Array(N_PERCENTILES).fill(0).map((x, i) => i);
+
 // Ordered by income.
-const CLUSTER_ORDER = [2, 0, 3, 1];
+const CLUSTER_ORDER = [2, 3, 0, 1];
 
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
@@ -22,16 +25,17 @@ const COLORS = [
 ];
 
 export function ChartPanel({dataState, hoverState}) {
+  const [clusterLines, setClusterLines] = useState([]);
   const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
 
   const [hoveredPercentileIndex, setHoveredPercentileIndex] = useState(0);
   const [hoveredPercentileValue, setHoveredPercentileValue] = useState(0);
 
+  const [hoveredCluster, setHoveredCluster] = useState(0);
+
   const [hoveredStdValue, setHoveredStdValue] = useState(0);
   const [hoveredValue, setHoveredValue] = useState('');
-  const [incomeKeys, setIncomeKeys] = useState([]);
-  const [incomes, setIncomes] = useState([]);
   const [values, setValues] = useState([]);
 
   const [incomePercentileThresholds, setIncomePercentileThresholds] = useState([]);
@@ -52,9 +56,8 @@ export function ChartPanel({dataState, hoverState}) {
           return 0;
         }
 
-        const k = 20;
-        for (let i = 0; i < k; i++) {
-          if (i === k - 1 ||
+        for (let i = 0; i < N_PERCENTILES; i++) {
+          if (i === N_PERCENTILES - 1 ||
               (income > incomePercentileThresholds[i] &&
                income <= incomePercentileThresholds[i + 1])) {
             return i;
@@ -75,7 +78,26 @@ export function ChartPanel({dataState, hoverState}) {
     }
   }, [hoverState, setHoveredValue]);
 
-  // Set hovered CBG in income plot.
+  // Set hovered CBG cluster.
+  useEffect(() => {
+    const lines = {
+      color: '#fff',
+      width: new Array(4).fill(0),
+    };
+    if (hoverState.cbg === null || hoverState.cbg.id === null || clusterJson[hoverState.cbg.id] === null) {
+      setHoveredCluster(null);
+      setClusterLines(lines);
+      return;
+    }
+
+    const hoveredCluster = clusterJson[hoverState.cbg.id];
+    lines.width[hoveredCluster] = 2;
+
+    setHoveredCluster(hoveredCluster);
+    setClusterLines(lines);
+  }, [hoverState, setClusterLines, setHoveredCluster]);
+
+  // Set hovered CBG in percentile plot.
   useEffect(() => {
     if (hoverState.cbg === null) {
       setHoveredPercentileIndex(0);
@@ -95,8 +117,8 @@ export function ChartPanel({dataState, hoverState}) {
       setHoveredPercentileValue(percentileValues[percentileIndex]);
     }
   }, [
-    dataState, getIncomePercentileIndex, hoverState, incomes,
-    percentileValues, setHoveredPercentileIndex, setHoveredPercentileValue,
+    dataState, getIncomePercentileIndex, hoverState, percentileValues,
+    setHoveredPercentileIndex, setHoveredPercentileValue,
   ]);
 
   // Set hovered CBG in distribution plot.
@@ -154,19 +176,13 @@ export function ChartPanel({dataState, hoverState}) {
       clusterCounts[clusterIndex]++;
     }
 
-    const incomeQ = [];
     const percentileValues = [];
-    const k = 20;
 
     incomes.sort((a, b) => a - b);
-    const q = Math.floor(incomes.length / k);
-    for (let i = 0; i < k; i++) {
+    for (let i = 0; i < N_PERCENTILES; i++) {
       percentileValues.push([]);
     }
 
-    for (let j = 0; j < k; j++) {
-      incomeQ.push(j);
-    }
     for (let i in incomes) {
       percentileValues[getIncomePercentileIndex(incomes[i])].push(incomeValues[i]);
     }
@@ -180,14 +196,11 @@ export function ChartPanel({dataState, hoverState}) {
             .map((sum, i) => sum / clusterCounts[i])
             .filter((x, i) => i !== 4);
 
-    setIncomes(incomeQ);
-    setIncomeKeys(incomeQ);
     setPercentileValues(percentileValues);
     setClusterValues(clusterMeans);
-
   }, [
-    dataState, getIncomePercentileIndex, setClusterValues, setIncomeKeys,
-    setIncomes, setPercentileValues, setValues,
+    dataState, getIncomePercentileIndex, setClusterValues,
+    setPercentileValues, setValues,
   ]);
 
   return (
@@ -275,9 +288,9 @@ export function ChartPanel({dataState, hoverState}) {
               {
                 type: 'scatter',
                 mode: 'markers',
-                x: incomes,
+                x: PERCENTILE_INDICES,
                 y: percentileValues,
-                text: incomeKeys,
+                text: PERCENTILE_INDICES,
                 marker: {
                   color: '#c466ff',
                   size: 5,
@@ -336,8 +349,9 @@ export function ChartPanel({dataState, hoverState}) {
                     COLORS[CLUSTER_ORDER[2]],
                     COLORS[CLUSTER_ORDER[3]],
                   ],
+                  line: clusterLines,
                 },
-                x: [0, 1, 2, 3],
+                x: CLUSTER_ORDER,
                 y: [
                   clusterValues[CLUSTER_ORDER[0]],
                   clusterValues[CLUSTER_ORDER[1]],
