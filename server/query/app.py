@@ -27,10 +27,8 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 api = Api(app)
 
-ATTRIBUTE_CHOICES = ('category')
-
 parser = reqparse.RequestParser()
-parser.add_argument('a', choices=ATTRIBUTE_CHOICES)
+parser.add_argument('a')
 parser.add_argument('aggs')
 parser.add_argument('aggt')
 parser.add_argument('av')
@@ -46,7 +44,7 @@ class AggregationType(IntEnum):
     MEDIAN = 1
     SUM = 2
 
-class NaicsCodeGroup(IntEnum):
+class PoiCategory(IntEnum):
     BEER_WINE_AND_LIQUOR_STORES = 0
     BIG_BOX_GROCERS = 1
     DELIS_AND_CONVENIENCE_STORES = 2
@@ -62,6 +60,10 @@ class NaicsCodeGroup(IntEnum):
     SUPERMARKETS = 12
     TOBACCO_STORES = 13
 
+class PoiType(IntEnum):
+    FOOD_RETAIL = 0
+    FOOD_SERVICE = 1
+
 class MetricType(IntEnum):
     ESTIMATED_VISITOR_COUNT = 0
     PERCENT_ESTIMATED_VISITOR_COUNT = 1
@@ -71,21 +73,40 @@ METRIC_NAMES_HOME = {
     MetricType.ESTIMATED_VISITOR_COUNT: 'estimated_visitor_count',
 }
 
-NAICS_CODE_GROUP_NAMES = {
-    NaicsCodeGroup.BEER_WINE_AND_LIQUOR_STORES: ['Beer, Wine, and Liquor Stores'],
-    NaicsCodeGroup.BIG_BOX_GROCERS: ['Big Box Grocers'],
-    NaicsCodeGroup.DELIS_AND_CONVENIENCE_STORES: ['Delis and Convenience Stores'],
-    NaicsCodeGroup.DRINKING_PLACES: ['Drinking Places'],
-    NaicsCodeGroup.FAST_FOOD_RESTAURANTS: ['Fast-Food Restaurants'],
-    NaicsCodeGroup.FOOD_SERVICES: ['Food Services'],
-    NaicsCodeGroup.FULL_SERVICE_RESTAURANTS: ['Full-Service Restaurants'],
-    NaicsCodeGroup.GENERAL_MERCHANDISE_STORES: ['General Merchandise Stores'],
-    NaicsCodeGroup.LIMITED_SERVICE_RESTAURANTS: ['Limited-Service Restaurants'],
-    NaicsCodeGroup.PHARMACIES_AND_DRUG_STORES: ['Pharmacies and Drug Stores'],
-    NaicsCodeGroup.SNACKS_AND_BAKERIES: ['Snacks and Bakeries'],
-    NaicsCodeGroup.SPECIALTY_FOOD_STORES: ['Specialty Food Stores'],
-    NaicsCodeGroup.SUPERMARKETS: ['Supermarkets'],
-    NaicsCodeGroup.TOBACCO_STORES: ['Tobacco Stores'],
+POI_CATEGORY_NAMES = {
+    PoiCategory.BEER_WINE_AND_LIQUOR_STORES: ['Beer, Wine, and Liquor Stores'],
+    PoiCategory.BIG_BOX_GROCERS: ['Big Box Grocers'],
+    PoiCategory.DELIS_AND_CONVENIENCE_STORES: ['Delis and Convenience Stores'],
+    PoiCategory.DRINKING_PLACES: ['Drinking Places'],
+    PoiCategory.FAST_FOOD_RESTAURANTS: ['Fast-Food Restaurants'],
+    PoiCategory.FOOD_SERVICES: ['Food Services'],
+    PoiCategory.FULL_SERVICE_RESTAURANTS: ['Full-Service Restaurants'],
+    PoiCategory.GENERAL_MERCHANDISE_STORES: ['General Merchandise Stores'],
+    PoiCategory.LIMITED_SERVICE_RESTAURANTS: ['Limited-Service Restaurants'],
+    PoiCategory.PHARMACIES_AND_DRUG_STORES: ['Pharmacies and Drug Stores'],
+    PoiCategory.SNACKS_AND_BAKERIES: ['Snacks and Bakeries'],
+    PoiCategory.SPECIALTY_FOOD_STORES: ['Specialty Food Stores'],
+    PoiCategory.SUPERMARKETS: ['Supermarkets'],
+    PoiCategory.TOBACCO_STORES: ['Tobacco Stores'],
+}
+
+POI_TYPE_NAMES = {
+    PoiType.FOOD_RETAIL: (
+            POI_CATEGORY_NAMES[PoiCategory.BEER_WINE_AND_LIQUOR_STORES] +
+            POI_CATEGORY_NAMES[PoiCategory.BIG_BOX_GROCERS] +
+            POI_CATEGORY_NAMES[PoiCategory.DELIS_AND_CONVENIENCE_STORES] +
+            POI_CATEGORY_NAMES[PoiCategory.GENERAL_MERCHANDISE_STORES] +
+            POI_CATEGORY_NAMES[PoiCategory.PHARMACIES_AND_DRUG_STORES] +
+            POI_CATEGORY_NAMES[PoiCategory.SNACKS_AND_BAKERIES] +
+            POI_CATEGORY_NAMES[PoiCategory.SPECIALTY_FOOD_STORES] +
+            POI_CATEGORY_NAMES[PoiCategory.SUPERMARKETS]),
+    PoiType.FOOD_SERVICE: (
+            POI_CATEGORY_NAMES[PoiCategory.DRINKING_PLACES] +
+            POI_CATEGORY_NAMES[PoiCategory.FAST_FOOD_RESTAURANTS] +
+            POI_CATEGORY_NAMES[PoiCategory.FOOD_SERVICES] +
+            POI_CATEGORY_NAMES[PoiCategory.FULL_SERVICE_RESTAURANTS] +
+            POI_CATEGORY_NAMES[PoiCategory.LIMITED_SERVICE_RESTAURANTS] +
+            POI_CATEGORY_NAMES[PoiCategory.TOBACCO_STORES])
 }
 
 FILTERED_CBGS = set([
@@ -126,10 +147,14 @@ def aggregate_temporally(df, config):
 
 def calculate_percent_diff(df, config):
     # Segment dataframe by attribute class.
-    codes_1 = NAICS_CODE_GROUP_NAMES[int(config.key_attr_class_primary)]
+    codes_1 = []
+    if int(config.key_attr) == 0:
+        codes_1 = POI_CATEGORY_NAMES[int(config.key_attr_class_primary)]
+    elif int(config.key_attr) == 1:
+        codes_1 = POI_TYPE_NAMES[int(config.key_attr_class_primary)]
 
     # Spatially aggregate metric across all POIs per naics code per CBG per week.
-    df_all = df.groupby(by=[config.cbg_key, 'date_offset', config.key_attr]).agg({
+    df_all = df.groupby(by=[config.cbg_key, 'date_offset', 'category']).agg({
         'value': 'sum'}).reset_index()
 
     cbgs = set(df_all[config.cbg_key])
@@ -211,7 +236,7 @@ class CbgHomeQuery(Resource):
                 rows_compare.append(row)
 
         # Create data frames.
-        df_columns = [query_config.cbg_key, 'date_offset', 'value', query_config.key_attr]
+        df_columns = [query_config.cbg_key, 'date_offset', 'value', 'category']
         df_primary = pd.DataFrame.from_records(
                 rows_primary,
                 columns=df_columns)
@@ -283,7 +308,7 @@ class SqlQuery:
         self.date_start_primary = http_query.date_start_primary
 
         # Attribute filter.
-        self.attr = http_query.attr
+        self.attr = 'category'
         self.attr_sql = ''
 
         # Metric query predicate.
@@ -318,7 +343,7 @@ class SqlQuery:
         q += f' {t2}.visitor_home_cbg_id,'
         q += f' {t2}.date_range_start,'
         q += f' {self.aggregation_sql},'
-        q += f' {t1}.{self.attr}'
+        q += f' {t1}.category'
         q += f' FROM {t1}'
         q += f' INNER JOIN {t2}'
         q += f'  ON {t1}.placekey = {t2}.placekey'
@@ -335,7 +360,7 @@ class SqlQuery:
         q += ' GROUP BY '
         q += f' {t2}.visitor_home_cbg_id,'
         q += f' {t2}.date_range_start,'
-        q += f' {t1}.{self.attr}'
+        q += f' {t1}.category'
         return q
 
 api.add_resource(CbgHomeQuery, '/cbg/home/q')

@@ -5,7 +5,7 @@ import {QueryPanel} from 'QueryPanel.jsx';
 
 import {
   AggregationType, AttributeType, MapPlotType,
-  MetricType, NaicsCodeGroup, VisualizationType,
+  MetricType, PoiCategory,
 } from 'enum.js';
 
 import './App.css';
@@ -20,28 +20,28 @@ const queryStateSessionStorageParsers = {
   comparisonDateStart: (datum) => datum,
   datePeriodDuration: (datum) => parseInt(datum),
   dateStart: (datum) => datum,
+  mapPlotType: (datum) => parseInt(datum),
   metricType: (datum) => parseInt(datum),
   spatialAggregationType: (datum) => parseInt(datum),
   temporalAggregationType: (datum) => parseInt(datum),
-  visualizationType: (datum) => parseInt(datum),
 };
 
 /** @return {!QueryState} */
 function createDefaultQueryState() {
   return {
-    attributeClass: NaicsCodeGroup.SUPERMARKETS,
-    attributeType: AttributeType.NAICS_CODE_GROUP,
+    attributeClass: PoiCategory.SUPERMARKETS,
+    attributeType: AttributeType.POI_CATEGORY,
     compareAttributeClasses: false,
     compareDates: false,
-    comparisonAttributeClass: NaicsCodeGroup.GENERAL,
+    comparisonAttributeClass: PoiCategory.DELIS_AND_CONVENIENCE_STORES,
     comparisonDateEnd: '2019-03-09',
     comparisonDateStart: '2019-03-03',
     datePeriodDuration: 3,
     dateStart: '2020-03-01',
+    mapPlotType: MapPlotType.CHOROPLETH,
     metricType: MetricType.ESTIMATED_VISITOR_COUNT,
     spatialAggregationType: AggregationType.MEDIAN,
     temporalAggregationType: AggregationType.AVG,
-    visualizationType: VisualizationType.CHOROPLETH,
   };
 }
 
