@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
 import './Panel.css';
+import {AttributeType} from 'enum.js';
 
 export function QueryPanel({queryState, setQueryState}) {
   const [expanded, setExpanded] = useState(true);
@@ -20,32 +21,22 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleSpatialAggregationTypeChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      spatialAggregationType: parseInt(e.target.value),
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
-  function handleTemporalAggregationTypeChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      temporalAggregationType: parseInt(e.target.value),
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
   function handleAttributeClassChange(e, queryState) {
     setQueryState({
       ...queryState,
       attributeClass: parseInt(e.target.value),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleAttributeTypeChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      attributeClass: 0,
+      attributeType: parseInt(e.target.value),
     });
   }
 
@@ -149,6 +140,28 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleSpatialAggregationTypeChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      spatialAggregationType: parseInt(e.target.value),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleTemporalAggregationTypeChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      temporalAggregationType: parseInt(e.target.value),
+    });
+  }
+
   function getMonday(date) {
     while (date.getDay() !== 1) {
       date.setDate(date.getDate() - 1)
@@ -167,6 +180,48 @@ export function QueryPanel({queryState, setQueryState}) {
     const date = new Date(queryState.dateStart);
     date.setDate(date.getDate() + weeks * 7 - 1);
     return `${weeks} weeks (${date.toLocaleDateString()})`;
+  }
+
+  function renderAttributeClassSelect(queryState) {
+    switch (queryState.attributeType) {
+      case AttributeType.POI_CATEGORY:
+        return renderAttributeClassSelectPoiCategory(queryState);
+      case AttributeType.POI_TYPE:
+        return renderAttributeClassSelectPoiType(queryState);
+    }
+    throw new Error();
+  }
+
+  function renderAttributeClassSelectPoiCategory(queryState) {
+    return (
+        <select
+          defaultValue={queryState.attributeClass}
+          onChange={(e) => handleAttributeClassChange(e, queryState)}>
+          <option value="0">Beer, Wine, and Liquor Stores</option>
+          <option value="1">Big Box Grocers</option>
+          <option value="2">Delis and Convenience Stores</option>
+          <option value="3">Drinking Places</option>
+          <option value="4">Fast-Food Restaurants</option>
+          <option value="5">Food Services</option>
+          <option value="6">Full-Service Restaurants</option>
+          <option value="7">General Merchandise Stores</option>
+          <option value="8">Limited-Service Restaurants</option>
+          <option value="9">Pharmacies and Drug Stores</option>
+          <option value="10">Snacks and Bakeries</option>
+          <option value="11">Specialty Food Stores</option>
+          <option value="12">Supermarkets</option>
+          <option value="13">Tobacco Stores</option>
+        </select>);
+  }
+
+  function renderAttributeClassSelectPoiType(queryState) {
+    return (
+        <select
+          defaultValue={queryState.attributeClass}
+          onChange={(e) => handleAttributeClassChange(e, queryState)}>
+          <option value="0">Food Retail</option>
+          <option value="1">Food Service</option>
+        </select>);
   }
 
   return (
@@ -269,24 +324,18 @@ export function QueryPanel({queryState, setQueryState}) {
         <div className="panel-control dropdown">
           <div>Attribute</div>
           <div className="select-container">
-            <select>
-              <option value="0">NAICS Code Group</option>
+            <select
+              defaultValue={queryState.attributeType}
+              onChange={(e) => handleAttributeTypeChange(e, queryState)}>
+              <option value="0">POI Category</option>
+              <option value="1">POI Type</option>
             </select>
           </div>
         </div>
         <div className="panel-control dropdown">
           <div>Attribute Class</div>
           <div className="select-container">
-            <select
-              defaultValue={queryState.attributeClass}
-              onChange={(e) => handleAttributeClassChange(e, queryState)}>
-              <option value="0">Supermarkets</option>
-              <option value="1">General Stores</option>
-              <option value="2">Restaurants</option>
-              <option value="3">Community Food Services</option>
-              <option value="4">Supplement Stores</option>
-              <option value="5">Tobacco & Liquor Stores</option>
-            </select>
+            {renderAttributeClassSelect(queryState)}
           </div>
         </div>
         <div className="panel-control">

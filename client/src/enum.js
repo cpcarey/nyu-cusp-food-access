@@ -5,7 +5,8 @@ export const AggregationType = {
 };
 
 export const AttributeType = {
-  NAICS_CODE_GROUP: 0,
+  POI_CATEGORY: 0,
+  POI_TYPE: 1,
 };
 
 export const MapPlotType = {
@@ -13,22 +14,25 @@ export const MapPlotType = {
   CLUSTER: 1,
 };
 
-export const NaicsCodeGroup = {
-  SUPERMARKETS: 0,
-  GENERAL: 1,
-  RESTAURANTS: 2,
-  COMMUNITY: 3,
-  SUPPLEMENTS: 4,
-  TOBACCO_LIQUOR: 5,
-};
-
-export const VisualizationType = {
-  CHOROPLETH: 0,
-  TRIP_NETWORK: 1,
-};
-
 export const MetricType = {
   ESTIMATED_VISITOR_COUNT: 0,
   PERCENT_ESTIMATED_VISITOR_COUNT: 1,
   CROWDING_DENSITY_INDEX: 2,
+};
+
+export const PoiCategory = {
+  BEER_WINE_AND_LIQUOR_STORES: 0,
+  BIG_BOX_GROCERS: 1,
+  DELIS_AND_CONVENIENCE_STORES: 2,
+  DRINKING_PLACES: 3,
+  FAST_FOOD_RESTAURANTS: 4,
+  FOOD_SERVICES: 5,
+  FULL_SERVICE_RESTAURANTS: 6,
+  GENERAL_MERCHANDISE_STORES: 7,
+  LIMITED_SERVICE_RESTAURANTS: 8,
+  PHARMACIES_AND_DRUG_STORES: 9,
+  SNACKS_AND_BAKERIES: 10,
+  SPECIALTY_FOOD_STORES: 11,
+  SUPERMARKETS: 12,
+  TOBACCO_STORES: 13,
 };

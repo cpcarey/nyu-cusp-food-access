@@ -120,17 +120,20 @@ export function ChartPanel({dataState, hoverState}) {
     const incomeQ = [];
     const incomeQuartiles = [];
     const incomeMeans = [];
+    const k = 20;
 
     incomes.sort((a, b) => a - b);
-    const q = Math.floor(incomes.length / 20);
-    for (let i = 0; i < 20; i++) {
+    const q = Math.floor(incomes.length / k);
+    for (let i = 0; i < k; i++) {
       incomeQuartiles.push(incomes[(i + 1) * q]);
       incomeMeans.push([]);
     }
+    for (let j = 0; j < k; j++) {
+      incomeQ.push(j);
+    }
     for (let i in incomes) {
-      for (let j = 0; j < 20; j++) {
-        incomeQ.push(j);
-        if (j === 19 ||
+      for (let j = 0; j < k; j++) {
+        if (j === k - 1 ||
             (incomes[i] > incomeQuartiles[j] &&
              incomes[i] <= incomeQuartiles[j + 1])) {
           incomeMeans[j].push(incomeValues[i]);
@@ -139,7 +142,8 @@ export function ChartPanel({dataState, hoverState}) {
       }
     }
     for (let i in incomeMeans) {
-      incomeMeans[i] = incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
+      incomeMeans[i] =
+          incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
     }
 
     const clusterMeans =
@@ -150,9 +154,6 @@ export function ChartPanel({dataState, hoverState}) {
     setIncomes(incomeQ);
     setIncomeKeys(incomeQ);
     setIncomeValues(incomeMeans);
-
-    console.log(incomeQuartiles);
-    console.log(incomeMeans);
 
     setClusterValues(clusterMeans);
   }, [
@@ -261,22 +262,22 @@ export function ChartPanel({dataState, hoverState}) {
                 r: 0,
                 t: 0,
               },
-              shapes: [
-                {
-                  type: 'circle',
-                  xanchor: hoveredIncome,
-                  yanchor: hoveredIncomeValue,
-                  x0: -3,
-                  x1: 3,
-                  y0: -3,
-                  y1: 3,
-                  xref: 'x',
-                  yref: 'y',
-                  xsizemode: 'pixel',
-                  ysizemode: 'pixel',
-                  fillcolor: '#fff',
-                },
-              ],
+              //shapes: [
+                //{
+                  //type: 'circle',
+                  //xanchor: hoveredIncome,
+                  //yanchor: hoveredIncomeValue,
+                  //x0: -3,
+                  //x1: 3,
+                  //y0: -3,
+                  //y1: 3,
+                  //xref: 'x',
+                  //yref: 'y',
+                  //xsizemode: 'pixel',
+                  //ysizemode: 'pixel',
+                  //fillcolor: '#fff',
+                //},
+              //],
               xaxis: {
                 gridcolor: 'transparent',
                 zerolinecolor: '#999',
