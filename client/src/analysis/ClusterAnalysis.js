@@ -1,8 +1,8 @@
 import {ColorAnalysis} from './ColorAnalysis.js';
 
-import censusJson from '../data/cbg_attr_and_cluster.json';
-const populationJson = censusJson['Total Population'];
-const clusterJson = censusJson['Cluster'];
+import censusJson from '../data/cbg_attr_and_cluster_1115.json';
+const populationJson = censusJson['population'];
+const clusterJson = censusJson['cluster'];
 
 const DEFAULT_ID = 'cbg1';
 
