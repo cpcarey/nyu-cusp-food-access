@@ -11,7 +11,7 @@ import itertools
 
 PROJECT_ID = 'project-usifood'
 DATASET_ID = 'dataset_1'
-TABLE_ID = 'table_2'
+TABLE_ID = 'poi_health_recatgorized'
 TABLE_TRIP_ID = 'weekly_trips_by_home_cbg'
 TABLE_DEVICE_COUNT_ID = 'table_device_count'
 
@@ -27,7 +27,7 @@ cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 api = Api(app)
 
-ATTRIBUTE_CHOICES = ('naics_code')
+ATTRIBUTE_CHOICES = ('category')
 
 parser = reqparse.RequestParser()
 parser.add_argument('a', choices=ATTRIBUTE_CHOICES)
@@ -47,12 +47,20 @@ class AggregationType(IntEnum):
     SUM = 2
 
 class NaicsCodeGroup(IntEnum):
-    SUPERMARKETS = 0
-    GENERAL = 1
-    RESTAURANTS = 2
-    COMMUNITY = 3
-    SUPPLEMENTS = 4
-    TOBACCO_LIQUOR = 5
+    BEER_WINE_AND_LIQUOR_STORES = 0
+    BIG_BOX_GROCERS = 1
+    DELIS_AND_CONVENIENCE_STORES = 2
+    DRINKING_PLACES = 3
+    FAST_FOOD_RESTAURANTS = 4
+    FOOD_SERVICES = 5
+    FULL_SERVICE_RESTAURANTS = 6
+    GENERAL_MERCHANDISE_STORES = 7
+    LIMITED_SERVICE_RESTAURANTS = 8
+    PHARMACIES_AND_DRUG_STORES = 9
+    SNACKS_AND_BAKERIES = 10
+    SPECIALTY_FOOD_STORES = 11
+    SUPERMARKETS = 12
+    TOBACCO_STORES = 13
 
 class MetricType(IntEnum):
     ESTIMATED_VISITOR_COUNT = 0
@@ -63,14 +71,21 @@ METRIC_NAMES_HOME = {
     MetricType.ESTIMATED_VISITOR_COUNT: 'estimated_visitor_count',
 }
 
-NAICS_CODES = {
-    NaicsCodeGroup.SUPERMARKETS: [
-        4452, 445210, 445220, 445230, 445291, 445292, 445299, 311811, 445110],
-    NaicsCodeGroup.GENERAL: [4539, 445120, 452319, 453998, 452210],
-    NaicsCodeGroup.RESTAURANTS: [7225, 722511, 722513, 722514, 722515],
-    NaicsCodeGroup.COMMUNITY: [624210, 722320],
-    NaicsCodeGroup.SUPPLEMENTS: [446110, 446191],
-    NaicsCodeGroup.TOBACCO_LIQUOR: [445310, 453991, 722410],
+NAICS_CODE_GROUP_NAMES = {
+    NaicsCodeGroup.BEER_WINE_AND_LIQUOR_STORES: ['Beer, Wine, and Liquor Stores'],
+    NaicsCodeGroup.BIG_BOX_GROCERS: ['Big Box Grocers'],
+    NaicsCodeGroup.DELIS_AND_CONVENIENCE_STORES: ['Delis and Convenience Stores'],
+    NaicsCodeGroup.DRINKING_PLACES: ['Drinking Places'],
+    NaicsCodeGroup.FAST_FOOD_RESTAURANTS: ['Fast-Food Restaurants'],
+    NaicsCodeGroup.FOOD_SERVICES: ['Food Services'],
+    NaicsCodeGroup.FULL_SERVICE_RESTAURANTS: ['Full-Service Restaurants'],
+    NaicsCodeGroup.GENERAL_MERCHANDISE_STORES: ['General Merchandise Stores'],
+    NaicsCodeGroup.LIMITED_SERVICE_RESTAURANTS: ['Limited-Service Restaurants'],
+    NaicsCodeGroup.PHARMACIES_AND_DRUG_STORES: ['Pharmacies and Drug Stores'],
+    NaicsCodeGroup.SNACKS_AND_BAKERIES: ['Snacks and Bakeries'],
+    NaicsCodeGroup.SPECIALTY_FOOD_STORES: ['Specialty Food Stores'],
+    NaicsCodeGroup.SUPERMARKETS: ['Supermarkets'],
+    NaicsCodeGroup.TOBACCO_STORES: ['Tobacco Stores'],
 }
 
 FILTERED_CBGS = set([
@@ -111,10 +126,11 @@ def aggregate_temporally(df, config):
 
 def calculate_percent_diff(df, config):
     # Segment dataframe by attribute class.
-    codes_1 = NAICS_CODES[int(config.key_attr_class_primary)]
+    codes_1 = NAICS_CODE_GROUP_NAMES[int(config.key_attr_class_primary)]
+    print(codes_1)
 
     # Spatially aggregate metric across all POIs per naics code per CBG per week.
-    df_all = df.groupby(by=[config.cbg_key, 'date_offset']).agg({
+    df_all = df.groupby(by=[config.cbg_key, 'date_offset', config.key_attr]).agg({
         'value': 'sum'}).reset_index()
 
     cbgs = set(df_all[config.cbg_key])
@@ -127,7 +143,7 @@ def calculate_percent_diff(df, config):
             columns=[config.cbg_key, 'date_offset'])
     df_full['value'] = 0
 
-    df1 = df[df['naics_code'].isin(codes_1)]
+    df1 = df[df['category'].isin(codes_1)]
     df1 = df1.groupby(by=[config.cbg_key, 'date_offset']).agg({
         'value': config.spatial_aggregation_function}).reset_index()
     df1 = df_full.merge(
@@ -195,8 +211,10 @@ class CbgHomeQuery(Resource):
                 row[1] = (dt - date_origin_compare).days
                 rows_compare.append(row)
 
+        print(f'here we go {query_config.key_attr}')
+
         # Create data frames.
-        df_columns = [query_config.cbg_key, 'date_offset', 'value', 'naics_code']
+        df_columns = [query_config.cbg_key, 'date_offset', 'value', query_config.key_attr]
         df_primary = pd.DataFrame.from_records(
                 rows_primary,
                 columns=df_columns)
@@ -208,6 +226,8 @@ class CbgHomeQuery(Resource):
             df_compare = pd.DataFrame.from_records(
                     rows_compare,
                     columns=df_columns)
+
+        print(df_primary)
 
         # Transform data frames.
         values = process_data_frames(df_primary, df_compare, query_config)
@@ -243,6 +263,7 @@ class QueryConfig:
     aggregation_function_temporal = 0
 
     def __init__(self, http_query):
+        self.key_attr = http_query.attr
         self.key_attr_class_primary = http_query.attr_value_primary
         self.key_attr_class_compare = http_query.attr_value_compare
         self.compare_dates = (http_query.date_start_compare != None and
@@ -300,18 +321,17 @@ class SqlQuery:
         q = ''
         q += f'SELECT'
         q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
+        q += f' {t2}.date_range_start,'
         q += f' {self.aggregation_sql},'
-        q += f' {self.attr}'
+        q += f' {t1}.{self.attr}'
         q += f' FROM {t1}'
         q += f' INNER JOIN {t2}'
         q += f'  ON {t1}.placekey = {t2}.placekey'
-        q += f'  AND {t1}.date_range_start = {t2}.date_range_start'
-        q += f' WHERE {t1}.date_range_start'
+        q += f' WHERE {t2}.date_range_start'
         q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
         q += f'  AND TIMESTAMP("{self.date_end_primary}")'
         if query_config.compare_dates:
-            q += f'  OR {t1}.date_range_start'
+            q += f'  OR {t2}.date_range_start'
             q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
             q += f'  AND TIMESTAMP("{self.date_end_compare}")'
         for filter_sql in self.filter_sqls:
@@ -319,55 +339,8 @@ class SqlQuery:
         q += f' {self.attr_sql}'
         q += ' GROUP BY '
         q += f' {t2}.visitor_home_cbg_id,'
-        q += f' {t1}.date_range_start,'
-        q += f' {self.attr}'
-        return q
-
-    def get_query_poi_primary(self, query_config):
-        q = ''
-        q += 'SELECT'
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql}),'
-        q += f' {self.attr}'
-        q += f' FROM {t1}'
-        # q += f' INNER JOIN {t3}'
-        # q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_primary}")'
-        q += f'  AND TIMESTAMP("{self.date_end_primary}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        # q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' {self.attr}'
-        return q
-
-    def get_query_poi_compare(self, query_config):
-        if not query_config.compare_dates:
-            return ''
-
-        q = ''
-        q += 'SELECT'
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' SUM({self.metric_sql}),'
-        q += f' {self.attr}'
-        q += f' FROM {t1}'
-        # q += f' INNER JOIN {t3}'
-        # q += f'  ON {t1}.poi_cbg = {t3}.origin_census_block_group'
-        q += f' WHERE {t1}.date_range_start'
-        q += f'  BETWEEN TIMESTAMP("{self.date_start_compare}")'
-        q += f'  AND TIMESTAMP("{self.date_end_compare}")'
-        for filter_sql in self.filter_sqls:
-            q += filter_sql
-        # q += f' {self.attr_sql}'
-        q += ' GROUP BY '
-        q += f' {t1}.poi_cbg,'
-        q += f' {t1}.date_range_start,'
-        q += f' {self.attr}'
+        q += f' {t2}.date_range_start,'
+        q += f' {t1}.{self.attr}'
         return q
 
 api.add_resource(CbgHomeQuery, '/cbg/home/q')

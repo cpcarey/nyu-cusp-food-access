@@ -120,17 +120,20 @@ export function ChartPanel({dataState, hoverState}) {
     const incomeQ = [];
     const incomeQuartiles = [];
     const incomeMeans = [];
+    const k = 20;
 
     incomes.sort((a, b) => a - b);
-    const q = Math.floor(incomes.length / 20);
-    for (let i = 0; i < 20; i++) {
+    const q = Math.floor(incomes.length / k);
+    for (let i = 0; i < k; i++) {
       incomeQuartiles.push(incomes[(i + 1) * q]);
       incomeMeans.push([]);
     }
+    for (let j = 0; j < k; j++) {
+      incomeQ.push(j);
+    }
     for (let i in incomes) {
-      for (let j = 0; j < 20; j++) {
-        incomeQ.push(j);
-        if (j === 19 ||
+      for (let j = 0; j < k; j++) {
+        if (j === k - 1 ||
             (incomes[i] > incomeQuartiles[j] &&
              incomes[i] <= incomeQuartiles[j + 1])) {
           incomeMeans[j].push(incomeValues[i]);
@@ -147,12 +150,9 @@ export function ChartPanel({dataState, hoverState}) {
             .map((sum, i) => sum / clusterCounts[i])
             .filter((x, i) => i !== 4);
 
-    setIncomes(incomeQ);
-    setIncomeKeys(incomeQ);
-    setIncomeValues(incomeMeans);
-
-    console.log(incomeQuartiles);
-    console.log(incomeMeans);
+    setIncomes([...incomeQ]);
+    setIncomeKeys([...incomeQ]);
+    setIncomeValues([...incomeMeans]);
 
     setClusterValues(clusterMeans);
   }, [

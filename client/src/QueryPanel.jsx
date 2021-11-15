@@ -270,7 +270,7 @@ export function QueryPanel({queryState, setQueryState}) {
           <div>Attribute</div>
           <div className="select-container">
             <select>
-              <option value="0">NAICS Code Group</option>
+              <option value="0">POI Category</option>
             </select>
           </div>
         </div>
@@ -280,12 +280,20 @@ export function QueryPanel({queryState, setQueryState}) {
             <select
               defaultValue={queryState.attributeClass}
               onChange={(e) => handleAttributeClassChange(e, queryState)}>
-              <option value="0">Supermarkets</option>
-              <option value="1">General Stores</option>
-              <option value="2">Restaurants</option>
-              <option value="3">Community Food Services</option>
-              <option value="4">Supplement Stores</option>
-              <option value="5">Tobacco & Liquor Stores</option>
+              <option value="0">Beer, Wine, and Liquor Stores</option>
+              <option value="1">Big Box Grocers</option>
+              <option value="2">Delis and Convenience Stores</option>
+              <option value="3">Drinking Places</option>
+              <option value="4">Fast-Food Restaurants</option>
+              <option value="5">Food Services</option>
+              <option value="6">Full-Service Restaurants</option>
+              <option value="7">General Merchandise Stores</option>
+              <option value="8">Limited-Service Restaurants</option>
+              <option value="9">Pharmacies and Drug Stores</option>
+              <option value="10">Snacks and Bakeries</option>
+              <option value="11">Specialty Food Stores</option>
+              <option value="12">Supermarkets</option>
+              <option value="13">Tobacco Stores</option>
             </select>
           </div>
         </div>

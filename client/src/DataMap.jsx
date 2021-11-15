@@ -45,7 +45,7 @@ export function DataMap({
 
   const constructQueryUrl =
       useCallback(function(queryState) {
-        const attribute = 'naics_code';
+        const attribute = 'category';
         const path = getPath(queryState);
 
         let url = `http://localhost:5000/${path}`;
