@@ -4,20 +4,21 @@ import {DataMap} from 'DataMap.jsx';
 import {QueryPanel} from 'QueryPanel.jsx';
 
 import {
-  AggregationDirection, AggregationType, AttributeType, MapPlotType,
+  AggregationType, AttributeType, MapPlotType,
   MetricType, NaicsCodeGroup, VisualizationType,
 } from 'enum.js';
 
 import './App.css';
 
 const queryStateSessionStorageParsers = {
-  aggregationDirection: (datum) => parseInt(datum),
   attributeClass: (datum) => parseInt(datum),
   attributeType: (datum) => parseInt(datum),
+  compareAttributeClasses: (datum) => datum === 'true',
   compareDates: (datum) => datum === 'true',
+  comparisonAttributeClass: (datum) => datum,
   comparisonDateEnd: (datum) => datum,
   comparisonDateStart: (datum) => datum,
-  dateEnd: (datum) => datum,
+  datePeriodDuration: (datum) => parseInt(datum),
   dateStart: (datum) => datum,
   metricType: (datum) => parseInt(datum),
   spatialAggregationType: (datum) => parseInt(datum),
@@ -28,15 +29,16 @@ const queryStateSessionStorageParsers = {
 /** @return {!QueryState} */
 function createDefaultQueryState() {
   return {
-    aggregationDirection: AggregationDirection.POI,
     attributeClass: NaicsCodeGroup.SUPERMARKETS,
     attributeType: AttributeType.NAICS_CODE_GROUP,
-    compareDates: true,
-    comparisonDateEnd: '2019-04-03',
+    compareAttributeClasses: false,
+    compareDates: false,
+    comparisonAttributeClass: NaicsCodeGroup.GENERAL,
+    comparisonDateEnd: '2019-03-09',
     comparisonDateStart: '2019-03-03',
-    dateEnd: '2020-04-01',
+    datePeriodDuration: 3,
     dateStart: '2020-03-01',
-    metricType: MetricType.DENSITY,
+    metricType: MetricType.ESTIMATED_VISITOR_COUNT,
     spatialAggregationType: AggregationType.MEDIAN,
     temporalAggregationType: AggregationType.AVG,
     visualizationType: VisualizationType.CHOROPLETH,

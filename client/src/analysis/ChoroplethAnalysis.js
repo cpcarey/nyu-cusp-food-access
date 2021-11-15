@@ -1,5 +1,8 @@
 import {ColorAnalysis} from './ColorAnalysis.js';
 
+import censusJson from '../data/cbg_attr_and_cluster.json';
+const populationJson = censusJson['Total Population'];
+
 const DEFAULT_COLOR_MAX = '#ff2200';
 const DEFAULT_COLOR_MIN = '#00adff';
 const DEFAULT_ID = 'cbg1';
@@ -44,5 +47,6 @@ function getRatio(cbgId, valueMap) {
 }
 
 function hasData(cbgId, valueMap) {
-  return valueMap.has(cbgId);
+  return valueMap.has(cbgId) && populationJson[cbgId] !== undefined
+      && populationJson[cbgId] > 10;
 }

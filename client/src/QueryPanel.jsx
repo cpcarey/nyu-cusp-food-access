@@ -20,17 +20,6 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleAggregationDirectionChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      aggregationDirection: parseInt(e.target.value),
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
   function handleSpatialAggregationTypeChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -64,6 +53,17 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
+  function handleCompareAttributeClassesChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      compareAttributeClasses: e.target.checked,
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
   function handleCompareDatesChange(e, queryState) {
     setQueryState({
       ...queryState,
@@ -75,16 +75,10 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleComparisonDateEndChange(e, queryState) {
-    const {dateStart, dateEnd} =
-        validateEndDate(
-            new Date(queryState.comparisonDateStart),
-            new Date(e.target.value));
-
+  function handleComparisonAttributeClassChange(e, queryState) {
     setQueryState({
       ...queryState,
-      comparisonDateEnd: convertDateToString(dateEnd),
-      comparisonDateStart: convertDateToString(dateStart),
+      comparisonAttributeClass: parseInt(e.target.value),
     });
   }
 
@@ -93,14 +87,10 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleComparisonDateStartChange(e, queryState) {
-    const {dateStart, dateEnd} =
-        validateStartDate(
-            new Date(e.target.value),
-            new Date(queryState.comparisonDateEnd));
+    const dateStart = new Date(e.target.value);
 
     setQueryState({
       ...queryState,
-      comparisonDateEnd: convertDateToString(dateEnd),
       comparisonDateStart: convertDateToString(dateStart),
     });
   }
@@ -109,16 +99,10 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleDateEndChange(e, queryState) {
-    const {dateStart, dateEnd} =
-        validateEndDate(
-            new Date(queryState.dateStart),
-            new Date(e.target.value));
-
+  function handleDatePeriodDurationChange(e, queryState) {
     setQueryState({
       ...queryState,
-      dateEnd: convertDateToString(dateEnd),
-      dateStart: convertDateToString(dateStart),
+      datePeriodDuration: parseInt(e.target.value),
     });
   }
 
@@ -127,15 +111,30 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!QueryState} queryState
    */
   function handleDateStartChange(e, queryState) {
-    const {dateStart, dateEnd} =
-        validateStartDate(
-            new Date(e.target.value),
-            new Date(queryState.dateEnd));
+    const primary = {};
+    const compare = {};
+    const {datePeriodDuration} = queryState;
+
+    primary.dateStart = getMonday(new Date(e.target.value));
+
+    primary.dateEnd = new Date(primary.dateStart);
+    primary.dateEnd.setDate(primary.dateStart.getDate() + 7 * datePeriodDuration - 1);
+    primary.dateEnd = getMonday(primary.dateEnd);
+
+    compare.dateStart = new Date(primary.dateStart);
+    compare.dateStart.setDate(compare.dateStart.getDate() - 7 * datePeriodDuration);
+    compare.dateStart = getMonday(compare.dateStart);
+
+    compare.dateEnd = new Date(compare.dateStart);
+    compare.dateEnd.setDate(compare.dateStart.getDate() + 7 * datePeriodDuration - 1);
+    compare.dateEnd = getMonday(compare.dateEnd);
 
     setQueryState({
       ...queryState,
-      dateEnd: convertDateToString(dateEnd),
-      dateStart: convertDateToString(dateStart),
+      dateEnd: convertDateToString(primary.dateEnd),
+      dateStart: convertDateToString(primary.dateStart),
+      comparisonDateEnd: convertDateToString(compare.dateEnd),
+      comparisonDateStart: convertDateToString(compare.dateStart),
     });
   }
 
@@ -150,45 +149,29 @@ export function QueryPanel({queryState, setQueryState}) {
     });
   }
 
-  function validateEndDate(dateStart, dateEnd) {
-    // Ensure start date is at least seven days before end date.
-    const dateStartMax = new Date(dateEnd);
-    dateStartMax.setDate(dateEnd.getDate() - 7);
-
-    if (dateStart > dateStartMax) {
-      dateStart = dateStartMax;
+  function getMonday(date) {
+    while (date.getDay() !== 1) {
+      date.setDate(date.getDate() - 1)
     }
-
-    return {dateStart, dateEnd};
+    return date;
   }
 
-  function validateStartDate(dateStart, dateEnd) {
-    // Ensure end date is at least seven days after end date.
-    const dateEndMin = new Date(dateStart);
-    dateEndMin.setDate(dateStart.getDate() + 7);
+  function getEndDateOption(queryState, weeks) {
+    const date = new Date(queryState.dateStart);
+    date.setDate(date.getDate() + weeks * 7 - 1);
+    return date;
+  }
 
-    if (dateEnd < dateEndMin) {
-      dateEnd = dateEndMin;
-    }
-
-    return {dateStart, dateEnd};
+  function getEndDateOptionString(queryState, weeks) {
+    //const date = getEndDateOption(queryState, weeks);
+    const date = new Date(queryState.dateStart);
+    date.setDate(date.getDate() + weeks * 7 - 1);
+    return `${weeks} weeks (${date.toLocaleDateString()})`;
   }
 
   return (
     <div className={classNamePanel}>
       <div className="panel-controls">
-        <div className="panel-control dropdown">
-          <div>Aggregation Direction</div>
-          <div className="select-container">
-            <select
-              defaultValue={queryState.aggregationDirection}
-              onChange={(e) => handleAggregationDirectionChange(e, queryState)}>
-              <option value="0">POI CBG</option>
-              <option value="1">Home CBG</option>
-            </select>
-          </div>
-        </div>
-        <hr />
         <div className="panel-control date-picker">
           <div>Start Date</div>
           <div>
@@ -201,16 +184,25 @@ export function QueryPanel({queryState, setQueryState}) {
             />
           </div>
         </div>
-        <div className="panel-control date-picker">
+        <div className="panel-control">
           <div>End Date</div>
-          <div>
-            <input
-              max="2021-03-01"
-              min="2019-03-02"
-              onChange={(e) => handleDateEndChange(e, queryState)}
-              type="date"
-              value={queryState.dateEnd}
-            />
+          <div className="select-container">
+            <select
+              defaultValue={queryState.datePeriodDuration}
+              onChange={(e) => handleDatePeriodDurationChange(e, queryState)}>
+              <option value="3">
+                {getEndDateOptionString(queryState, 3)}
+              </option>
+              <option value="6">
+                {getEndDateOptionString(queryState, 6)}
+              </option>
+              <option value="12">
+                {getEndDateOptionString(queryState, 12)}
+              </option>
+              <option value="24">
+                {getEndDateOptionString(queryState, 24)}
+              </option>
+            </select>
           </div>
         </div>
         <div className="panel-control">
@@ -247,16 +239,28 @@ export function QueryPanel({queryState, setQueryState}) {
         }
         {
           queryState.compareDates && (
-              <div className="panel-control date-picker">
+              <div className="panel-control">
                 <div>Comparison End Date</div>
-                <div>
-                  <input
-                    max="2021-03-01"
-                    min="2019-03-02"
-                    onChange={(e) => handleComparisonDateEndChange(e, queryState)}
-                    type="date"
-                    value={queryState.comparisonDateEnd}
-                  />
+                <div className="select-container">
+                  <select>
+                    defaultValue={queryState.datePeriodDuration}
+                    onChange={(e) => handleDatePeriodDurationChange(e, queryState)}>
+                    <option value="1">
+                      {getEndDateOptionString(queryState, 1)}
+                    </option>
+                    <option value="3">
+                      {getEndDateOptionString(queryState, 3)}
+                    </option>
+                    <option value="6">
+                      {getEndDateOptionString(queryState, 6)}
+                    </option>
+                    <option value="12">
+                      {getEndDateOptionString(queryState, 12)}
+                    </option>
+                    <option value="24">
+                      {getEndDateOptionString(queryState, 24)}
+                    </option>
+                  </select>
                 </div>
               </div>
           )
@@ -285,6 +289,41 @@ export function QueryPanel({queryState, setQueryState}) {
             </select>
           </div>
         </div>
+        <div className="panel-control">
+          <div>
+            <span>Compare Classes</span>
+            <input
+              checked={queryState.compareAttributeClasses}
+              className="switch-checkbox"
+              id="toggle-2"
+              onChange={(e) => handleCompareAttributeClassesChange(e, queryState)}
+              type="checkbox"
+            />
+            <label
+              className="switch"
+              htmlFor="toggle-2"
+            ></label>
+          </div>
+        </div>
+        {
+          queryState.compareAttributeClasses && (
+              <div className="panel-control dropdown">
+                <div>Comparison Attr. Class</div>
+                <div className="select-container">
+                  <select
+                    defaultValue={queryState.comparisonAttributeClass}
+                    onChange={(e) => handleComparisonAttributeClassChange(e, queryState)}>
+                    <option value="0">Supermarkets</option>
+                    <option value="1">General Stores</option>
+                    <option value="2">Restaurants</option>
+                    <option value="3">Community Food Services</option>
+                    <option value="4">Supplement Stores</option>
+                    <option value="5">Tobacco & Liquor Stores</option>
+                  </select>
+                </div>
+              </div>
+          )
+        }
         <hr />
         <div className="panel-control dropdown">
           <div>Metric</div>
@@ -292,9 +331,9 @@ export function QueryPanel({queryState, setQueryState}) {
             <select
               defaultValue={queryState.metricType}
               onChange={(e) => handleMetricTypeChange(e, queryState)}>
-              <option value="0">Visitor count</option>
-              <option value="1">Density</option>
-              <option value="2">High-density visitor count</option>
+              <option value="0">Est. visitor count</option>
+              <option value="1">% est. visitor count</option>
+              <option value="2">Contact density index</option>
             </select>
           </div>
         </div>
