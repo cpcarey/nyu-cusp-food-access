@@ -225,62 +225,125 @@ export function ChartPanel({dataState, hoverState}) {
 
         <div className="plot-container">
           <div className="plot-title">Value Histogram</div>
-          <Plot
-            data={[
-              {
-                type: 'histogram',
-                x: values,
-                marker: {
-                  color: '#c466ff',
-                },
-              },
-            ]}
-            layout={{
-              height: 98,
-              paper_bgcolor: 'transparent',
-              plot_bgcolor: 'transparent',
-              width: 196,
-              margin: {
-                b: 0,
-                l: 0,
-                pad: 0,
-                r: 0,
-                t: 0,
-              },
-              shapes: [
+          <div className="plot-double">
+            <Plot
+              data={[
                 {
-                  type: 'line',
-                  x0: 0,
-                  x1: 0,
-                  y0: 0,
-                  y1: 1,
-                  yref: 'paper',
-                  line: {
-                    color: '#fff',
-                    width: 0.8,
+                  hoverinfo: 'skip',
+                  type: 'histogram',
+                  x: values,
+                  marker: {
+                    color: '#ff2200',
                   },
                 },
+              ]}
+              layout={{
+                height: 98,
+                hoverinfo: 'skip',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                width: 196,
+                margin: {
+                  b: 0,
+                  l: 0,
+                  pad: 0,
+                  r: 0,
+                  t: 0,
+                },
+                shapes: [
+                  {
+                    type: 'line',
+                    x0: 0,
+                    x1: 0,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 0.8,
+                    },
+                  },
+                  {
+                    type: 'line',
+                    x0: hoveredStdValue,
+                    x1: hoveredStdValue,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 1,
+                    },
+                  },
+                ],
+                xaxis: {
+                  range: [-3, 3],
+                },
+                yaxis: {
+                  gridcolor: 'transparent',
+                },
+              }}
+            />
+
+            <Plot
+              data={[
                 {
-                  type: 'line',
-                  x0: hoveredStdValue,
-                  x1: hoveredStdValue,
-                  y0: 0,
-                  y1: 1,
-                  yref: 'paper',
-                  line: {
-                    color: '#fff',
-                    width: 1,
+                  hoverinfo: 'skip',
+                  type: 'histogram',
+                  x: values,
+                  marker: {
+                    color: '#00adff',
                   },
                 },
-              ],
-              xaxis: {
-                range: [-3, 3],
-              },
-              yaxis: {
-                gridcolor: 'transparent',
-              },
-            }}
-          />
+              ]}
+              layout={{
+                height: 98,
+                hoverinfo: 'skip',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                width: 196,
+                margin: {
+                  b: 0,
+                  l: 0,
+                  pad: 0,
+                  r: 0,
+                  t: 0,
+                },
+                shapes: [
+                  {
+                    type: 'line',
+                    x0: 0,
+                    x1: 0,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 0.8,
+                    },
+                  },
+                  {
+                    type: 'line',
+                    x0: hoveredStdValue,
+                    x1: hoveredStdValue,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 1,
+                    },
+                  },
+                ],
+                xaxis: {
+                  range: [-3, 3],
+                },
+                yaxis: {
+                  gridcolor: 'transparent',
+                },
+              }}
+            />
+          </div>
 
           <div className="plot-title">By Income Percentile (Mean)</div>
           <Plot

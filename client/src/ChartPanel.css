@@ -19,3 +19,26 @@
   font-weight: 500;
   width: 65px;
 }
+
+.plot-double {
+  position: relative;
+  width: 196px;
+}
+
+.plot-double * {
+  pointer-events: none !important;
+}
+
+.plot-double .js-plotly-plot:nth-child(2) {
+  pointer-events: none !important;
+  width: 98px;
+  overflow: hidden;
+}
+
+.plot-double .js-plotly-plot:nth-child(1) {
+  position: absolute !important;
+  pointer-events: none !important;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
