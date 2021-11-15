@@ -1,12 +1,15 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import Plot from 'react-plotly.js';
 
 import './ChartPanel.css';
 import './Panel.css';
 
-import censusJson from './data/cbg_attr_and_cluster.json';
-const incomeJson = censusJson['Median Household Income'];
-const clusterJson = censusJson['Cluster'];
+import censusJson from './data/cbg_attr_and_cluster_1115.json';
+const incomeJson = censusJson['income'];
+const clusterJson = censusJson['cluster'];
+
+// Ordered by income.
+const CLUSTER_ORDER = [2, 0, 3, 1];
 
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
@@ -16,21 +19,23 @@ const COLORS = [
   '#377eb8',
   '#4eaf4a',
   '#984ea4',
-  //'#ff7f00',
-  '#ffff33',
 ];
 
 export function ChartPanel({dataState, hoverState}) {
   const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
-  const [hoveredIncome, setHoveredIncome] = useState(0);
-  const [hoveredIncomeValue, setHoveredIncomeValue] = useState(0);
+
+  const [hoveredPercentileIndex, setHoveredPercentileIndex] = useState(0);
+  const [hoveredPercentileValue, setHoveredPercentileValue] = useState(0);
+
   const [hoveredStdValue, setHoveredStdValue] = useState(0);
   const [hoveredValue, setHoveredValue] = useState('');
   const [incomeKeys, setIncomeKeys] = useState([]);
   const [incomes, setIncomes] = useState([]);
-  const [incomeValues, setIncomeValues] = useState([]);
   const [values, setValues] = useState([]);
+
+  const [incomePercentileThresholds, setIncomePercentileThresholds] = useState([]);
+  const [percentileValues, setPercentileValues] = useState([]);
 
   const classNamePanel = [
     'panel',
@@ -40,6 +45,22 @@ export function ChartPanel({dataState, hoverState}) {
   ].filter((className) => className.length).join(' ');
 
   const classNameIcon = 'far fa-chart-bar';
+
+  const getIncomePercentileIndex =
+      useCallback(function(income) {
+        if (!income) {
+          return 0;
+        }
+
+        const k = 20;
+        for (let i = 0; i < k; i++) {
+          if (i === k - 1 ||
+              (income > incomePercentileThresholds[i] &&
+               income <= incomePercentileThresholds[i + 1])) {
+            return i;
+          }
+        }
+      }, [incomePercentileThresholds]);
 
   // Set hovered CBG value.
   useEffect(() => {
@@ -57,23 +78,25 @@ export function ChartPanel({dataState, hoverState}) {
   // Set hovered CBG in income plot.
   useEffect(() => {
     if (hoverState.cbg === null) {
-      setHoveredIncome(0);
-      setHoveredIncomeValue(0);
+      setHoveredPercentileIndex(0);
+      setHoveredPercentileValue(0);
     } else {
       const key = hoverState.cbg.id;
       const x = incomeJson[key];
       const y = dataState.cbgValueMap.get(key);
       if (x === null || y === null) {
-        setHoveredIncome(0);
-        setHoveredIncomeValue(0);
+        setHoveredPercentileIndex(0);
+        setHoveredPercentileValue(0);
         return;
       }
-      setHoveredIncome(incomeJson[key]);
-      setHoveredIncomeValue(dataState.cbgValueMap.get(key));
+
+      const percentileIndex = getIncomePercentileIndex(incomeJson[key]);
+      setHoveredPercentileIndex(percentileIndex);
+      setHoveredPercentileValue(percentileValues[percentileIndex]);
     }
   }, [
-    dataState, hoverState, incomes, incomeValues, setHoveredIncome,
-    setHoveredIncomeValue,
+    dataState, getIncomePercentileIndex, hoverState, incomes,
+    percentileValues, setHoveredPercentileIndex, setHoveredPercentileValue,
   ]);
 
   // Set hovered CBG in distribution plot.
@@ -87,6 +110,20 @@ export function ChartPanel({dataState, hoverState}) {
           Math.min(Math.max(stdValue || 0, SIGMA_MIN), SIGMA_MAX));
     }
   }, [dataState, hoverState, setHoveredStdValue]);
+
+  useEffect(() => {
+    const incomes = Object.values(incomeJson).filter((a) => a);
+    incomes.sort((a, b) => a - b);
+
+    const incomePercentileThresholds = [];
+    const k = 20;
+    const q = Math.floor(incomes.length / k);
+    for (let i = 0; i < k; i++) {
+      incomePercentileThresholds.push(incomes[(i + 1) * q]);
+    }
+
+    setIncomePercentileThresholds(incomePercentileThresholds);
+  }, [setIncomePercentileThresholds]);
 
   // Set values.
   useEffect(() => {
@@ -118,32 +155,24 @@ export function ChartPanel({dataState, hoverState}) {
     }
 
     const incomeQ = [];
-    const incomeQuartiles = [];
-    const incomeMeans = [];
+    const percentileValues = [];
     const k = 20;
 
     incomes.sort((a, b) => a - b);
     const q = Math.floor(incomes.length / k);
     for (let i = 0; i < k; i++) {
-      incomeQuartiles.push(incomes[(i + 1) * q]);
-      incomeMeans.push([]);
+      percentileValues.push([]);
     }
+
     for (let j = 0; j < k; j++) {
       incomeQ.push(j);
     }
     for (let i in incomes) {
-      for (let j = 0; j < k; j++) {
-        if (j === k - 1 ||
-            (incomes[i] > incomeQuartiles[j] &&
-             incomes[i] <= incomeQuartiles[j + 1])) {
-          incomeMeans[j].push(incomeValues[i]);
-          break;
-        }
-      }
+      percentileValues[getIncomePercentileIndex(incomes[i])].push(incomeValues[i]);
     }
-    for (let i in incomeMeans) {
-      incomeMeans[i] =
-          incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
+    for (let i in percentileValues) {
+      percentileValues[i] =
+          percentileValues[i].reduce((a, b) => a + b, 0) / percentileValues[i].length;
     }
 
     const clusterMeans =
@@ -153,12 +182,12 @@ export function ChartPanel({dataState, hoverState}) {
 
     setIncomes(incomeQ);
     setIncomeKeys(incomeQ);
-    setIncomeValues(incomeMeans);
-
+    setPercentileValues(percentileValues);
     setClusterValues(clusterMeans);
+
   }, [
-    dataState, setClusterValues, setIncomeKeys, setIncomes, setIncomeValues,
-    setValues,
+    dataState, getIncomePercentileIndex, setClusterValues, setIncomeKeys,
+    setIncomes, setPercentileValues, setValues,
   ]);
 
   return (
@@ -174,10 +203,15 @@ export function ChartPanel({dataState, hoverState}) {
         </div>
         <div className="value-row">
           <strong>Income:</strong>
-          <span>{hoveredIncome.toLocaleString()}</span>
+          <span>{
+            hoveredPercentileValue
+                ? hoveredPercentileValue.toLocaleString()
+                : 'N/A'
+          }</span>
         </div>
 
         <div className="plot-container">
+          <div className="plot-title">Value Histogram</div>
           <Plot
             data={[
               {
@@ -235,13 +269,14 @@ export function ChartPanel({dataState, hoverState}) {
             }}
           />
 
+          <div className="plot-title">By Income Percentile (Mean)</div>
           <Plot
             data={[
               {
                 type: 'scatter',
                 mode: 'markers',
                 x: incomes,
-                y: incomeValues,
+                y: percentileValues,
                 text: incomeKeys,
                 marker: {
                   color: '#c466ff',
@@ -262,22 +297,22 @@ export function ChartPanel({dataState, hoverState}) {
                 r: 0,
                 t: 0,
               },
-              //shapes: [
-                //{
-                  //type: 'circle',
-                  //xanchor: hoveredIncome,
-                  //yanchor: hoveredIncomeValue,
-                  //x0: -3,
-                  //x1: 3,
-                  //y0: -3,
-                  //y1: 3,
-                  //xref: 'x',
-                  //yref: 'y',
-                  //xsizemode: 'pixel',
-                  //ysizemode: 'pixel',
-                  //fillcolor: '#fff',
-                //},
-              //],
+              shapes: [
+                {
+                  type: 'circle',
+                  xanchor: hoveredPercentileIndex,
+                  yanchor: hoveredPercentileValue,
+                  x0: -6,
+                  x1: 6,
+                  y0: -6,
+                  y1: 6,
+                  xref: 'x',
+                  yref: 'y',
+                  xsizemode: 'pixel',
+                  ysizemode: 'pixel',
+                  fillcolor: '#fff',
+                },
+              ],
               xaxis: {
                 gridcolor: 'transparent',
                 zerolinecolor: '#999',
@@ -289,15 +324,26 @@ export function ChartPanel({dataState, hoverState}) {
             }}
           />
 
+          <div className="plot-title">By Cluster (Mean)</div>
           <Plot
             data={[
               {
                 type: 'bar',
                 marker: {
-                  color: COLORS,
+                  color: [
+                    COLORS[CLUSTER_ORDER[0]],
+                    COLORS[CLUSTER_ORDER[1]],
+                    COLORS[CLUSTER_ORDER[2]],
+                    COLORS[CLUSTER_ORDER[3]],
+                  ],
                 },
-                x: clusterValues.map((c, i) => i),
-                y: clusterValues,
+                x: [0, 1, 2, 3],
+                y: [
+                  clusterValues[CLUSTER_ORDER[0]],
+                  clusterValues[CLUSTER_ORDER[1]],
+                  clusterValues[CLUSTER_ORDER[2]],
+                  clusterValues[CLUSTER_ORDER[3]],
+                ],
               },
             ]}
             layout={{
