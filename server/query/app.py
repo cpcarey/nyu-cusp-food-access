@@ -127,7 +127,6 @@ def aggregate_temporally(df, config):
 def calculate_percent_diff(df, config):
     # Segment dataframe by attribute class.
     codes_1 = NAICS_CODE_GROUP_NAMES[int(config.key_attr_class_primary)]
-    print(codes_1)
 
     # Spatially aggregate metric across all POIs per naics code per CBG per week.
     df_all = df.groupby(by=[config.cbg_key, 'date_offset', config.key_attr]).agg({
@@ -211,8 +210,6 @@ class CbgHomeQuery(Resource):
                 row[1] = (dt - date_origin_compare).days
                 rows_compare.append(row)
 
-        print(f'here we go {query_config.key_attr}')
-
         # Create data frames.
         df_columns = [query_config.cbg_key, 'date_offset', 'value', query_config.key_attr]
         df_primary = pd.DataFrame.from_records(
@@ -226,8 +223,6 @@ class CbgHomeQuery(Resource):
             df_compare = pd.DataFrame.from_records(
                     rows_compare,
                     columns=df_columns)
-
-        print(df_primary)
 
         # Transform data frames.
         values = process_data_frames(df_primary, df_compare, query_config)

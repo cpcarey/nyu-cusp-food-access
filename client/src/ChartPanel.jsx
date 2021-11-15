@@ -142,7 +142,8 @@ export function ChartPanel({dataState, hoverState}) {
       }
     }
     for (let i in incomeMeans) {
-      incomeMeans[i] = incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
+      incomeMeans[i] =
+          incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
     }
 
     const clusterMeans =
@@ -150,9 +151,9 @@ export function ChartPanel({dataState, hoverState}) {
             .map((sum, i) => sum / clusterCounts[i])
             .filter((x, i) => i !== 4);
 
-    setIncomes([...incomeQ]);
-    setIncomeKeys([...incomeQ]);
-    setIncomeValues([...incomeMeans]);
+    setIncomes(incomeQ);
+    setIncomeKeys(incomeQ);
+    setIncomeValues(incomeMeans);
 
     setClusterValues(clusterMeans);
   }, [
@@ -261,22 +262,22 @@ export function ChartPanel({dataState, hoverState}) {
                 r: 0,
                 t: 0,
               },
-              shapes: [
-                {
-                  type: 'circle',
-                  xanchor: hoveredIncome,
-                  yanchor: hoveredIncomeValue,
-                  x0: -3,
-                  x1: 3,
-                  y0: -3,
-                  y1: 3,
-                  xref: 'x',
-                  yref: 'y',
-                  xsizemode: 'pixel',
-                  ysizemode: 'pixel',
-                  fillcolor: '#fff',
-                },
-              ],
+              //shapes: [
+                //{
+                  //type: 'circle',
+                  //xanchor: hoveredIncome,
+                  //yanchor: hoveredIncomeValue,
+                  //x0: -3,
+                  //x1: 3,
+                  //y0: -3,
+                  //y1: 3,
+                  //xref: 'x',
+                  //yref: 'y',
+                  //xsizemode: 'pixel',
+                  //ysizemode: 'pixel',
+                  //fillcolor: '#fff',
+                //},
+              //],
               xaxis: {
                 gridcolor: 'transparent',
                 zerolinecolor: '#999',
