@@ -355,7 +355,7 @@ export function ChartPanel({dataState, hoverState}) {
                 y: percentileValues,
                 text: PERCENTILE_INDICES,
                 marker: {
-                  color: '#c466ff',
+                  color: percentileValues.map((x) => x < 0 ? '#00adff' : '#ff2200'),
                   size: 5,
                   opacity: 1,
                 },
