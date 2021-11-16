@@ -29,8 +29,8 @@ export function ChartPanel({dataState, hoverState}) {
   const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
 
-  const [hoveredPercentileIndex, setHoveredPercentileIndex] = useState(0);
-  const [hoveredPercentileValue, setHoveredPercentileValue] = useState(0);
+  const [hoveredPercentileIndex, setHoveredPercentileIndex] = useState(null);
+  const [hoveredPercentileValue, setHoveredPercentileValue] = useState(null);
 
   const [hoveredCluster, setHoveredCluster] = useState(0);
 
@@ -100,15 +100,15 @@ export function ChartPanel({dataState, hoverState}) {
   // Set hovered CBG in percentile plot.
   useEffect(() => {
     if (hoverState.cbg === null) {
-      setHoveredPercentileIndex(0);
-      setHoveredPercentileValue(0);
+      setHoveredPercentileIndex(null);
+      setHoveredPercentileValue(null);
     } else {
       const key = hoverState.cbg.id;
       const x = incomeJson[key];
       const y = dataState.cbgValueMap.get(key);
       if (x === null || y === null) {
-        setHoveredPercentileIndex(0);
-        setHoveredPercentileValue(0);
+        setHoveredPercentileIndex(null);
+        setHoveredPercentileValue(null);
         return;
       }
 
@@ -378,6 +378,7 @@ export function ChartPanel({dataState, hoverState}) {
                   type: 'circle',
                   xanchor: hoveredPercentileIndex,
                   yanchor: hoveredPercentileValue,
+                  opacity: hoveredPercentileIndex === null ? 0 : 1,
                   x0: -6,
                   x1: 6,
                   y0: -6,
