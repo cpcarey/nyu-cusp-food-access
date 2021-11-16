@@ -1,7 +1,7 @@
 import {ColorAnalysis} from './ColorAnalysis.js';
 
-import censusJson from '../data/cbg_attr_and_cluster.json';
-const populationJson = censusJson['Total Population'];
+import censusJson from '../data/cbg_attr_and_cluster_1115.json';
+const populationJson = censusJson['population'];
 
 const DEFAULT_COLOR_MAX = '#ff2200';
 const DEFAULT_COLOR_MIN = '#00adff';

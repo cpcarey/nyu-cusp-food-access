@@ -1,18 +1,19 @@
 import {ColorAnalysis} from './ColorAnalysis.js';
 
-import censusJson from '../data/cbg_attr_and_cluster.json';
-const populationJson = censusJson['Total Population'];
-const clusterJson = censusJson['Cluster'];
+import censusJson from '../data/cbg_attr_and_cluster_1115.json';
+const populationJson = censusJson['population'];
+const clusterJson = censusJson['cluster'];
 
 const DEFAULT_ID = 'cbg1';
+
+// Ordered by income.
+const CLUSTER_ORDER = [2, 3, 0, 1];
 
 const COLORS = [
   '#e41a1b',
   '#377eb8',
   '#4eaf4a',
   '#984ea4',
-  '#ff7f00',
-  '#ffff33',
 ];
 
 export class ClusterAnalysis extends ColorAnalysis {
@@ -34,7 +35,7 @@ export class ClusterAnalysis extends ColorAnalysis {
 }
 
 function getColor(cbgId, valueMap) {
-  return hasData(cbgId) ? COLORS[clusterJson[cbgId]] : 'transparent';
+  return hasData(cbgId) ? COLORS[CLUSTER_ORDER[clusterJson[cbgId]]] : 'transparent';
 }
 
 function getLineWidth(cbgId, valueMap) {

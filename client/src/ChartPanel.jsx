@@ -1,12 +1,18 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import Plot from 'react-plotly.js';
 
 import './ChartPanel.css';
 import './Panel.css';
 
-import censusJson from './data/cbg_attr_and_cluster.json';
-const incomeJson = censusJson['Median Household Income'];
-const clusterJson = censusJson['Cluster'];
+import censusJson from './data/cbg_attr_and_cluster_1115.json';
+const incomeJson = censusJson['income'];
+const clusterJson = censusJson['cluster'];
+
+const N_PERCENTILES = 20;
+const PERCENTILE_INDICES = new Array(N_PERCENTILES).fill(0).map((x, i) => i);
+
+// Ordered by income.
+const CLUSTER_ORDER = [2, 3, 0, 1];
 
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
@@ -16,21 +22,24 @@ const COLORS = [
   '#377eb8',
   '#4eaf4a',
   '#984ea4',
-  //'#ff7f00',
-  '#ffff33',
 ];
 
 export function ChartPanel({dataState, hoverState}) {
+  const [clusterLines, setClusterLines] = useState([]);
   const [clusterValues, setClusterValues] = useState([]);
   const [expanded, setExpanded] = useState(true);
-  const [hoveredIncome, setHoveredIncome] = useState(0);
-  const [hoveredIncomeValue, setHoveredIncomeValue] = useState(0);
+
+  const [hoveredPercentileIndex, setHoveredPercentileIndex] = useState(null);
+  const [hoveredPercentileValue, setHoveredPercentileValue] = useState(null);
+
+  const [hoveredCluster, setHoveredCluster] = useState(0);
+
   const [hoveredStdValue, setHoveredStdValue] = useState(0);
   const [hoveredValue, setHoveredValue] = useState('');
-  const [incomeKeys, setIncomeKeys] = useState([]);
-  const [incomes, setIncomes] = useState([]);
-  const [incomeValues, setIncomeValues] = useState([]);
   const [values, setValues] = useState([]);
+
+  const [incomePercentileThresholds, setIncomePercentileThresholds] = useState([]);
+  const [percentileValues, setPercentileValues] = useState([]);
 
   const classNamePanel = [
     'panel',
@@ -40,6 +49,21 @@ export function ChartPanel({dataState, hoverState}) {
   ].filter((className) => className.length).join(' ');
 
   const classNameIcon = 'far fa-chart-bar';
+
+  const getIncomePercentileIndex =
+      useCallback(function(income) {
+        if (!income) {
+          return 0;
+        }
+
+        for (let i = 0; i < N_PERCENTILES; i++) {
+          if (i === N_PERCENTILES - 1 ||
+              (income > incomePercentileThresholds[i] &&
+               income <= incomePercentileThresholds[i + 1])) {
+            return i;
+          }
+        }
+      }, [incomePercentileThresholds]);
 
   // Set hovered CBG value.
   useEffect(() => {
@@ -54,26 +78,47 @@ export function ChartPanel({dataState, hoverState}) {
     }
   }, [hoverState, setHoveredValue]);
 
-  // Set hovered CBG in income plot.
+  // Set hovered CBG cluster.
+  useEffect(() => {
+    const lines = {
+      color: '#fff',
+      width: new Array(4).fill(0),
+    };
+    if (hoverState.cbg === null || hoverState.cbg.id === null || clusterJson[hoverState.cbg.id] === null) {
+      setHoveredCluster(null);
+      setClusterLines(lines);
+      return;
+    }
+
+    const hoveredCluster = clusterJson[hoverState.cbg.id];
+    lines.width[hoveredCluster] = 2;
+
+    setHoveredCluster(hoveredCluster);
+    setClusterLines(lines);
+  }, [hoverState, setClusterLines, setHoveredCluster]);
+
+  // Set hovered CBG in percentile plot.
   useEffect(() => {
     if (hoverState.cbg === null) {
-      setHoveredIncome(0);
-      setHoveredIncomeValue(0);
+      setHoveredPercentileIndex(null);
+      setHoveredPercentileValue(null);
     } else {
       const key = hoverState.cbg.id;
       const x = incomeJson[key];
       const y = dataState.cbgValueMap.get(key);
       if (x === null || y === null) {
-        setHoveredIncome(0);
-        setHoveredIncomeValue(0);
+        setHoveredPercentileIndex(null);
+        setHoveredPercentileValue(null);
         return;
       }
-      setHoveredIncome(incomeJson[key]);
-      setHoveredIncomeValue(dataState.cbgValueMap.get(key));
+
+      const percentileIndex = getIncomePercentileIndex(incomeJson[key]);
+      setHoveredPercentileIndex(percentileIndex);
+      setHoveredPercentileValue(percentileValues[percentileIndex]);
     }
   }, [
-    dataState, hoverState, incomes, incomeValues, setHoveredIncome,
-    setHoveredIncomeValue,
+    dataState, getIncomePercentileIndex, hoverState, percentileValues,
+    setHoveredPercentileIndex, setHoveredPercentileValue,
   ]);
 
   // Set hovered CBG in distribution plot.
@@ -87,6 +132,20 @@ export function ChartPanel({dataState, hoverState}) {
           Math.min(Math.max(stdValue || 0, SIGMA_MIN), SIGMA_MAX));
     }
   }, [dataState, hoverState, setHoveredStdValue]);
+
+  useEffect(() => {
+    const incomes = Object.values(incomeJson).filter((a) => a);
+    incomes.sort((a, b) => a - b);
+
+    const incomePercentileThresholds = [];
+    const k = 20;
+    const q = Math.floor(incomes.length / k);
+    for (let i = 0; i < k; i++) {
+      incomePercentileThresholds.push(incomes[(i + 1) * q]);
+    }
+
+    setIncomePercentileThresholds(incomePercentileThresholds);
+  }, [setIncomePercentileThresholds]);
 
   // Set values.
   useEffect(() => {
@@ -117,33 +176,19 @@ export function ChartPanel({dataState, hoverState}) {
       clusterCounts[clusterIndex]++;
     }
 
-    const incomeQ = [];
-    const incomeQuartiles = [];
-    const incomeMeans = [];
-    const k = 20;
+    const percentileValues = [];
 
     incomes.sort((a, b) => a - b);
-    const q = Math.floor(incomes.length / k);
-    for (let i = 0; i < k; i++) {
-      incomeQuartiles.push(incomes[(i + 1) * q]);
-      incomeMeans.push([]);
+    for (let i = 0; i < N_PERCENTILES; i++) {
+      percentileValues.push([]);
     }
-    for (let j = 0; j < k; j++) {
-      incomeQ.push(j);
-    }
+
     for (let i in incomes) {
-      for (let j = 0; j < k; j++) {
-        if (j === k - 1 ||
-            (incomes[i] > incomeQuartiles[j] &&
-             incomes[i] <= incomeQuartiles[j + 1])) {
-          incomeMeans[j].push(incomeValues[i]);
-          break;
-        }
-      }
+      percentileValues[getIncomePercentileIndex(incomes[i])].push(incomeValues[i]);
     }
-    for (let i in incomeMeans) {
-      incomeMeans[i] =
-          incomeMeans[i].reduce((a, b) => a + b, 0) / incomeMeans[i].length;
+    for (let i in percentileValues) {
+      percentileValues[i] =
+          percentileValues[i].reduce((a, b) => a + b, 0) / percentileValues[i].length;
     }
 
     const clusterMeans =
@@ -151,14 +196,11 @@ export function ChartPanel({dataState, hoverState}) {
             .map((sum, i) => sum / clusterCounts[i])
             .filter((x, i) => i !== 4);
 
-    setIncomes(incomeQ);
-    setIncomeKeys(incomeQ);
-    setIncomeValues(incomeMeans);
-
+    setPercentileValues(percentileValues);
     setClusterValues(clusterMeans);
   }, [
-    dataState, setClusterValues, setIncomeKeys, setIncomes, setIncomeValues,
-    setValues,
+    dataState, getIncomePercentileIndex, setClusterValues,
+    setPercentileValues, setValues,
   ]);
 
   return (
@@ -174,77 +216,146 @@ export function ChartPanel({dataState, hoverState}) {
         </div>
         <div className="value-row">
           <strong>Income:</strong>
-          <span>{hoveredIncome.toLocaleString()}</span>
+          <span>{
+            hoveredPercentileValue
+                ? hoveredPercentileValue.toLocaleString()
+                : 'N/A'
+          }</span>
         </div>
 
         <div className="plot-container">
-          <Plot
-            data={[
-              {
-                type: 'histogram',
-                x: values,
-                marker: {
-                  color: '#c466ff',
-                },
-              },
-            ]}
-            layout={{
-              height: 98,
-              paper_bgcolor: 'transparent',
-              plot_bgcolor: 'transparent',
-              width: 196,
-              margin: {
-                b: 0,
-                l: 0,
-                pad: 0,
-                r: 0,
-                t: 0,
-              },
-              shapes: [
+          <div className="plot-title">Value Histogram</div>
+          <div className="plot-double">
+            <Plot
+              data={[
                 {
-                  type: 'line',
-                  x0: 0,
-                  x1: 0,
-                  y0: 0,
-                  y1: 1,
-                  yref: 'paper',
-                  line: {
-                    color: '#fff',
-                    width: 0.8,
+                  hoverinfo: 'skip',
+                  type: 'histogram',
+                  x: values,
+                  marker: {
+                    color: '#ff2200',
                   },
                 },
-                {
-                  type: 'line',
-                  x0: hoveredStdValue,
-                  x1: hoveredStdValue,
-                  y0: 0,
-                  y1: 1,
-                  yref: 'paper',
-                  line: {
-                    color: '#fff',
-                    width: 1,
-                  },
+              ]}
+              layout={{
+                height: 98,
+                hoverinfo: 'skip',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                width: 196,
+                margin: {
+                  b: 0,
+                  l: 0,
+                  pad: 0,
+                  r: 0,
+                  t: 0,
                 },
-              ],
-              xaxis: {
-                range: [-3, 3],
-              },
-              yaxis: {
-                gridcolor: 'transparent',
-              },
-            }}
-          />
+                shapes: [
+                  {
+                    type: 'line',
+                    x0: 0,
+                    x1: 0,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 0.8,
+                    },
+                  },
+                  {
+                    type: 'line',
+                    x0: hoveredStdValue,
+                    x1: hoveredStdValue,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 1,
+                    },
+                  },
+                ],
+                xaxis: {
+                  range: [-3, 3],
+                },
+                yaxis: {
+                  gridcolor: 'transparent',
+                },
+              }}
+            />
 
+            <Plot
+              data={[
+                {
+                  hoverinfo: 'skip',
+                  type: 'histogram',
+                  x: values,
+                  marker: {
+                    color: '#00adff',
+                  },
+                },
+              ]}
+              layout={{
+                height: 98,
+                hoverinfo: 'skip',
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                width: 196,
+                margin: {
+                  b: 0,
+                  l: 0,
+                  pad: 0,
+                  r: 0,
+                  t: 0,
+                },
+                shapes: [
+                  {
+                    type: 'line',
+                    x0: 0,
+                    x1: 0,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 0.8,
+                    },
+                  },
+                  {
+                    type: 'line',
+                    x0: hoveredStdValue,
+                    x1: hoveredStdValue,
+                    y0: 0,
+                    y1: 1,
+                    yref: 'paper',
+                    line: {
+                      color: '#fff',
+                      width: 1,
+                    },
+                  },
+                ],
+                xaxis: {
+                  range: [-3, 3],
+                },
+                yaxis: {
+                  gridcolor: 'transparent',
+                },
+              }}
+            />
+          </div>
+
+          <div className="plot-title">By Income Percentile (Mean)</div>
           <Plot
             data={[
               {
                 type: 'scatter',
                 mode: 'markers',
-                x: incomes,
-                y: incomeValues,
-                text: incomeKeys,
+                x: PERCENTILE_INDICES,
+                y: percentileValues,
+                text: PERCENTILE_INDICES,
                 marker: {
-                  color: '#c466ff',
+                  color: percentileValues.map((x) => x < 0 ? '#00adff' : '#ff2200'),
                   size: 5,
                   opacity: 1,
                 },
@@ -262,22 +373,23 @@ export function ChartPanel({dataState, hoverState}) {
                 r: 0,
                 t: 0,
               },
-              //shapes: [
-                //{
-                  //type: 'circle',
-                  //xanchor: hoveredIncome,
-                  //yanchor: hoveredIncomeValue,
-                  //x0: -3,
-                  //x1: 3,
-                  //y0: -3,
-                  //y1: 3,
-                  //xref: 'x',
-                  //yref: 'y',
-                  //xsizemode: 'pixel',
-                  //ysizemode: 'pixel',
-                  //fillcolor: '#fff',
-                //},
-              //],
+              shapes: [
+                {
+                  type: 'circle',
+                  xanchor: hoveredPercentileIndex,
+                  yanchor: hoveredPercentileValue,
+                  opacity: hoveredPercentileIndex === null ? 0 : 1,
+                  x0: -6,
+                  x1: 6,
+                  y0: -6,
+                  y1: 6,
+                  xref: 'x',
+                  yref: 'y',
+                  xsizemode: 'pixel',
+                  ysizemode: 'pixel',
+                  fillcolor: '#fff',
+                },
+              ],
               xaxis: {
                 gridcolor: 'transparent',
                 zerolinecolor: '#999',
@@ -289,15 +401,27 @@ export function ChartPanel({dataState, hoverState}) {
             }}
           />
 
+          <div className="plot-title">By Cluster (Mean)</div>
           <Plot
             data={[
               {
                 type: 'bar',
                 marker: {
-                  color: COLORS,
+                  color: [
+                    COLORS[CLUSTER_ORDER[0]],
+                    COLORS[CLUSTER_ORDER[1]],
+                    COLORS[CLUSTER_ORDER[2]],
+                    COLORS[CLUSTER_ORDER[3]],
+                  ],
+                  line: clusterLines,
                 },
-                x: clusterValues.map((c, i) => i),
-                y: clusterValues,
+                x: CLUSTER_ORDER,
+                y: [
+                  clusterValues[CLUSTER_ORDER[0]],
+                  clusterValues[CLUSTER_ORDER[1]],
+                  clusterValues[CLUSTER_ORDER[2]],
+                  clusterValues[CLUSTER_ORDER[3]],
+                ],
               },
             ]}
             layout={{
