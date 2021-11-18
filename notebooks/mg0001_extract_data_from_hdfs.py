@@ -1,3 +1,6 @@
+# Primary Author: Maia Guo
+# To extract data from CUSP HDFS, with preliminary filtering and aggregation
+
 import os
 import pyspark
 #conf = pyspark.SparkConf()
