@@ -41,7 +41,7 @@ The `docs` directory contains images.
 
 ## Installing server
 
- 1. Navigate to the `server/` directory
+ 1. Navigate to the `server/query/` directory
  2. Create a folder in the directory named `private`.
  3. Add the team-provided BigQuery access token
  4. Run in a `conda` environmment with `flask` and `pandas` installed
