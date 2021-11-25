@@ -1,6 +1,8 @@
-# NYU CUSP Capstone Project
+# NYU CUSP Food Access Capstone Project
 
 Authors: Chris Carey, Maia Guo, Nuoyi Wang
+
+[Project Website](https://chriscarey.tech/nyu/capstone)
 
 ## Overview
 
