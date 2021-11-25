@@ -37,3 +37,15 @@ The `docs` directory contains images.
 ## Running client
 
  1. `npm start`
+
+
+## Installing server
+
+ 1. Navigate to the `server/` directory
+ 2. Create a folder in the directory named `private`.
+ 3. Add the team-provided BigQuery access token
+ 4. Run in a `conda` environmment with `flask` and `pandas` installed
+
+## Running server
+
+ 1. `python app.py`
