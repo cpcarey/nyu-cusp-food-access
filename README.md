@@ -1,6 +1,17 @@
 # NYU CUSP Capstone Project
 
-![Screenshot of Client Application](./docs/screenshot.png)
+Authors: Chris Carey, Maia Guo, Nuoyi Wang
+
+## Overview
+
+This repository includes both Jupyter notebooks used for data analysis, and source code for an interactive web application. Data are not stored in this repository due to size and licensing constraints.
+
+The `client` directory contains source code for the React Mapbox JavaScript client application\
+The `server` directory contains source code for the Flask and Pandas query processing engine and API\
+The `notebooks` directory contains Jupyter notebooks
+The `docs` directory contains images.
+
+![Screenshot of Client Application](./docs/app1.png)
 
 ## Installing client
 
