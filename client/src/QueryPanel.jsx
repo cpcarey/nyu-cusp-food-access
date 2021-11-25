@@ -44,32 +44,10 @@ export function QueryPanel({queryState, setQueryState}) {
    * @param {!Event} e
    * @param {!QueryState} queryState
    */
-  function handleCompareAttributeClassesChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      compareAttributeClasses: e.target.checked,
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
   function handleCompareDatesChange(e, queryState) {
     setQueryState({
       ...queryState,
       compareDates: e.target.checked,
-    });
-  }
-
-  /**
-   * @param {!Event} e
-   * @param {!QueryState} queryState
-   */
-  function handleComparisonAttributeClassChange(e, queryState) {
-    setQueryState({
-      ...queryState,
-      comparisonAttributeClass: parseInt(e.target.value),
     });
   }
 
@@ -83,6 +61,17 @@ export function QueryPanel({queryState, setQueryState}) {
     setQueryState({
       ...queryState,
       comparisonDateStart: convertDateToString(dateStart),
+    });
+  }
+
+  /**
+   * @param {!Event} e
+   * @param {!QueryState} queryState
+   */
+  function handleDatePeriodDurationChange(e, queryState) {
+    setQueryState({
+      ...queryState,
+      datePeriodDuration: parseInt(e.target.value),
     });
   }
 
@@ -163,7 +152,7 @@ export function QueryPanel({queryState, setQueryState}) {
   }
 
   function getMonday(date) {
-    while (date.getDay() !== 1) {
+    while (date.getDay() !== 0) {
       date.setDate(date.getDate() - 1)
     }
     return date;
@@ -175,10 +164,21 @@ export function QueryPanel({queryState, setQueryState}) {
     return date;
   }
 
+  function getComparisonEndDateOption(queryState, weeks) {
+    const date = new Date(queryState.comparisonDateStart);
+    date.setDate(date.getDate() + weeks * 7 - 1);
+    return date;
+  }
+
   function getEndDateOptionString(queryState, weeks) {
-    //const date = getEndDateOption(queryState, weeks);
     const date = new Date(queryState.dateStart);
     date.setDate(date.getDate() + weeks * 7 - 1);
+    return `${weeks} weeks (${date.toLocaleDateString()})`;
+  }
+
+  function getComparisonEndDateOptionString(queryState, weeks) {
+    const date = new Date(queryState.comparisonDateStart);
+    date.setDate(date.getDate() + weeks * 7);
     return `${weeks} weeks (${date.toLocaleDateString()})`;
   }
 
@@ -297,23 +297,19 @@ export function QueryPanel({queryState, setQueryState}) {
               <div className="panel-control">
                 <div>Comparison End Date</div>
                 <div className="select-container">
-                  <select>
-                    defaultValue={queryState.datePeriodDuration}
-                    onChange={(e) => handleDatePeriodDurationChange(e, queryState)}>
-                    <option value="1">
-                      {getEndDateOptionString(queryState, 1)}
-                    </option>
+                  <select
+                    defaultValue={queryState.datePeriodDuration}>
                     <option value="3">
-                      {getEndDateOptionString(queryState, 3)}
+                      {getComparisonEndDateOptionString(queryState, 3)}
                     </option>
                     <option value="6">
-                      {getEndDateOptionString(queryState, 6)}
+                      {getComparisonEndDateOptionString(queryState, 6)}
                     </option>
                     <option value="12">
-                      {getEndDateOptionString(queryState, 12)}
+                      {getComparisonEndDateOptionString(queryState, 12)}
                     </option>
                     <option value="24">
-                      {getEndDateOptionString(queryState, 24)}
+                      {getComparisonEndDateOptionString(queryState, 24)}
                     </option>
                   </select>
                 </div>
@@ -338,41 +334,6 @@ export function QueryPanel({queryState, setQueryState}) {
             {renderAttributeClassSelect(queryState)}
           </div>
         </div>
-        <div className="panel-control">
-          <div>
-            <span>Compare Classes</span>
-            <input
-              checked={queryState.compareAttributeClasses}
-              className="switch-checkbox"
-              id="toggle-2"
-              onChange={(e) => handleCompareAttributeClassesChange(e, queryState)}
-              type="checkbox"
-            />
-            <label
-              className="switch"
-              htmlFor="toggle-2"
-            ></label>
-          </div>
-        </div>
-        {
-          queryState.compareAttributeClasses && (
-              <div className="panel-control dropdown">
-                <div>Comparison Attr. Class</div>
-                <div className="select-container">
-                  <select
-                    defaultValue={queryState.comparisonAttributeClass}
-                    onChange={(e) => handleComparisonAttributeClassChange(e, queryState)}>
-                    <option value="0">Supermarkets</option>
-                    <option value="1">General Stores</option>
-                    <option value="2">Restaurants</option>
-                    <option value="3">Community Food Services</option>
-                    <option value="4">Supplement Stores</option>
-                    <option value="5">Tobacco & Liquor Stores</option>
-                  </select>
-                </div>
-              </div>
-          )
-        }
         <hr />
         <div className="panel-control dropdown">
           <div>Metric</div>

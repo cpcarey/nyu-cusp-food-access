@@ -67,7 +67,7 @@ class PoiType(IntEnum):
 class MetricType(IntEnum):
     ESTIMATED_VISITOR_COUNT = 0
     PERCENT_ESTIMATED_VISITOR_COUNT = 1
-    CROWDING_DENSITY_INDEX = 4
+    CROWDING_DENSITY_INDEX = 2
 
 METRIC_NAMES_HOME = {
     MetricType.ESTIMATED_VISITOR_COUNT: 'estimated_visitor_count',
@@ -320,9 +320,9 @@ class SqlQuery:
         elif http_query.metric == MetricType.PERCENT_ESTIMATED_VISITOR_COUNT:
             self.metric_sql = f'{t2}.pct_estimated_visitor_count'
         elif http_query.metric == MetricType.CROWDING_DENSITY_INDEX:
-            self.metric_sql = f'{t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet'
+            self.metric_sql = f'{t2}.esimated_visitor_count * {t2}.visitor_count / {t1}.area_square_feet'
             self.filter_sqls = f' AND {t1}.area_square_feet IS NOT NULL'
-            self.filter_sqls = f' AND {t2}.esimated_visitor_count * {t1}.raw_visitor_counts / {t1}.area_square_feet > 0.0005'
+            self.filter_sqls = f' AND {t2}.esimated_visitor_count * {t2}.visitor_count / {t1}.area_square_feet > 0.0005'
 
         # Temporal aggregation method.
         self.metric_aggregate = f'{self.metric_sql} as metric_agg'
