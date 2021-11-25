@@ -4,7 +4,11 @@ Authors: Chris Carey, Maia Guo, Nuoyi Wang
 
 [Project Website](https://chriscarey.tech/nyu/capstone)
 
-## Overview
+## Abstract
+
+The COVID-19 pandemic had a complex impact on food acquisition behaviors in New York City (NYC). Pre-existing disparities in food access and food supply resiliency compounded negative health risks for certain populations by exacerbating food insecurity, increasing dependencies on unhealthy food, and creating disproportionate risks of COVID-19 infection during food acquisition. Mobility data of trips to food retail and service locations were used to supplement existing survey data to model and analyze changes in food acquisition in NYC during the pandemic. Demographic and socioeconomic clustering was employed in time series analyses of metrics modeling dietary changes and COVID-19 infection risk. These analyses identified neighborhoods and food location categories with the greatest need for more resilient food access and supply. While direct connections to health outcomes were not established in this paper, the produced measures identified the locations and relative degrees of disparities in dietary changes associated with negative health outcomes. Therefore, combined with community and expert knowledge, such a holistic model can inform the most effective means to direct equitable policy-driven improvements to the food system resilience of NYC, in preparation for future public health emergencies.
+
+## Repository Overview
 
 This repository includes both Jupyter notebooks used for data analysis, and source code for an interactive web application. Data are not stored in this repository due to size and licensing constraints.
 
@@ -12,6 +16,8 @@ The `client` directory contains source code for the React Mapbox JavaScript clie
 The `server` directory contains source code for the Flask and Pandas query processing engine and API\
 The `notebooks` directory contains Jupyter notebooks
 The `docs` directory contains images.
+
+## Visualization Application
 
 ![Screenshot of Client Application](./docs/app1.png)
 
