@@ -6,8 +6,8 @@ const clusterJson = censusJson['cluster'];
 
 const DEFAULT_ID = 'cbg1';
 
-// Ordered by income.
-const CLUSTER_ORDER = [2, 3, 0, 1];
+// Re-orderable if desired
+const CLUSTER_ORDER = [0, 1, 2, 3];
 
 const COLORS = [
   '#e41a1b',

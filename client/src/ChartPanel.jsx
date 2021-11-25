@@ -11,8 +11,8 @@ const clusterJson = censusJson['cluster'];
 const N_PERCENTILES = 20;
 const PERCENTILE_INDICES = new Array(N_PERCENTILES).fill(0).map((x, i) => i);
 
-// Ordered by income.
-const CLUSTER_ORDER = [2, 3, 0, 1];
+// Re-orderable if desired
+const CLUSTER_ORDER = [0, 1, 2, 3];
 
 const SIGMA_MIN = -2;
 const SIGMA_MAX = 2;
